@@ -1075,26 +1075,44 @@ window.addEventListener('scroll', ()=>{
 
   // Match the current theme at load time — dark ink text in light mode,
 // cream text in dark mode (same colors your nav/toggle already use)
-const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
-const labelColor = isDarkTheme ? '#f4efe4' : '#0b2b2b';
+function getLabelColor(){
+  return document.documentElement.getAttribute('data-theme') === 'dark' ? '#f4efe4' : '#0b2b2b';
+}
+const labelRedraws = [];
 
 function makeLabel(text){
   const c = document.createElement('canvas');
   c.width = 512; c.height = 160;
   const ctx = c.getContext('2d');
-  ctx.font = '400 52px Georgia';
-  ctx.textAlign = 'center';
-  ctx.fillStyle = labelColor;
   const lines = text.split('\n');
   const lineHeight = 58;
   const startY = 160/2 - (lineHeight*(lines.length-1))/2 + 18;
-  lines.forEach((line,i)=> ctx.fillText(line, 256, startY + i*lineHeight));
   const tex = new THREE.CanvasTexture(c);
-    const mat = new THREE.SpriteMaterial({map:tex, transparent:true});
-    const sprite = new THREE.Sprite(mat);
-    sprite.scale.set(2.6, 0.8, 1);
-    return sprite;
+
+  function draw(color){
+    ctx.clearRect(0, 0, 512, 160);
+    ctx.font = '400 52px Georgia';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = color;
+    lines.forEach((line,i)=> ctx.fillText(line, 256, startY + i*lineHeight));
+    tex.needsUpdate = true;
   }
+  draw(getLabelColor());
+  labelRedraws.push(draw);
+
+  const mat = new THREE.SpriteMaterial({map:tex, transparent:true});
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(2.6, 0.8, 1);
+  return sprite;
+}
+
+const themeToggleBtn = document.getElementById('themeToggle');
+if(themeToggleBtn){
+  themeToggleBtn.addEventListener('click', ()=>{
+    const color = getLabelColor();
+    labelRedraws.forEach(draw=> draw(color));
+  });
+}
 
   const gltfLoader = new THREE.GLTFLoader();
   const mixers = [];

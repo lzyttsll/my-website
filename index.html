@@ -891,6 +891,9 @@
 
   let curFbo = fboA, curTex = stateA, nextFbo = fboB, nextTex = stateB;
   let last = performance.now();
+  document.addEventListener('visibilitychange', ()=>{
+  if(!document.hidden) last = performance.now();
+});
 
   function stepSim(){
     mouseVel *= 0.88;
@@ -1499,7 +1502,10 @@ scrollObserver.observe(villageWrap);
   }
 
   let lastFrameTime = 0;
-  function animate(t){
+  document.addEventListener('visibilitychange', ()=>{
+  if(!document.hidden) lastFrameTime = 0;
+  });
+function animate(t){
     requestAnimationFrame(animate);
     const time = t*0.001;
     const delta = lastFrameTime ? (t - lastFrameTime)/1000 : 0;

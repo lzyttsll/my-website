@@ -23,6 +23,11 @@
   }
   .hint.faded{ opacity:0; }
   .explore-intro{ max-width:60ch; color:var(--muted); margin-bottom:2rem; }
+  .village-wrap{
+  position:relative; width:100%; height:65vh; min-height:460px;
+  background:#0b2b2b; border-radius:2px; overflow:hidden;
+}
+.village-wrap canvas{ display:block; }
 </style>
 </head>
 <body class="home">
@@ -54,7 +59,6 @@
   </div>
   <div id="fallback" style="display:none;position:absolute;inset:0;color:#eef4ee;font-family:sans-serif;align-items:center;justify-content:center;text-align:center;padding:2rem;z-index:6;">Your browser doesn't support WebGL, which this demo needs.</div>
 </div>
-</div>
 
   <section class="home-about">
   <div class="avatar-placeholder-sm">ZL</div>
@@ -67,33 +71,14 @@
 <main>
   <h2 class="section-title">Explore</h2>
   <p class="explore-intro">Still under construction..., but here's the blocks so far — pick one to see what's up </p>
-  <div class="grid">
-    <div class="card">
-      <h3>Education</h3>
-      <p>Degrees, coursework, and schools</p>
-      <a class="card-link" href="education.html">View</a>
-    </div>
-    <div class="card">
-      <h3>Volunteering & Involvement</h3>
-      <p>Places I show up when nobody's grading me ;)</p>
-      <a class="card-link" href="volunteering-involvement.html">View</a>
-    </div>
-    <div class="card">
-      <h3>Projects</h3>
-      <p>Some gimmicks and ideas (WIP)</p>
-      <a class="card-link" href="projects.html">View</a>
-    </div>
-    <div class="card">
-      <h3>Research</h3>
-      <p>Where I go down rabbit holes on purpose</p>
-      <a class="card-link" href="research.html">View</a>
-    </div>
-  </div>
+  <div class="village-wrap" id="villageWrap"></div>
+<p style="margin-top:1rem;color:var(--muted);font-size:.82rem;">Drag to look around. Click an object to visit that section.</p>
+<p style="margin-top:.3rem;color:var(--muted);font-size:.7rem;opacity:.7;">"3D Origami Crane" by JuanG3D &middot; "Cute Toon Tree" by Matrix Rex &middot; "Blonky Apple" by Hatty &middot; "Robotic arm" by Angelo.Sanfilippo1 &mdash; all CC-BY-4.0</p>
 </main>
 
 <footer>
   <span>&copy; 2026 Zhuyutong Li</span>
-  <span><a href="mailto:lisarah@usc.edu">lisarah@usc.edu</a> &nbsp;·&nbsp; <a href="www.linkedin.com/in/sarah-zhuyutong-li-a16516387" target="_blank">LinkedIn</a> &nbsp;·&nbsp; <a href="https://github.com/lzyttsll">GitHub</a></span>
+  <span><a href="mailto:lisarah@usc.edu">lisarah@usc.edu</a> &nbsp;·&nbsp; <a href="https://www.linkedin.com/in/sarah-zhuyutong-li-a16516387" target="_blank">LinkedIn</a> &nbsp;·&nbsp; <a href="https://github.com/lzyttsll">GitHub</a></span>
 </footer>
 
 <script>
@@ -1025,6 +1010,205 @@
 window.addEventListener('scroll', ()=>{
   document.getElementById('siteNav').classList.toggle('scrolled', window.scrollY > 40);
 });
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script>
+(function(){
+  const villageWrap = document.getElementById('villageWrap');
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(42, villageWrap.clientWidth/villageWrap.clientHeight, 0.1, 100);
+  camera.position.set(0, 4.4, 11.5);
+
+  const renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(villageWrap.clientWidth, villageWrap.clientHeight);
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+  villageWrap.appendChild(renderer.domElement);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.9);
+  sun.position.set(4, 8, 5);
+  scene.add(sun);
+
+  const village = new THREE.Group();
+  scene.add(village);
+
+  const buildings = [
+    {label:'Education', href:'education.html', model:'blonky_apple.glb', height:0.55, rotY:0.3},
+    {label:'Volunteering &\nInvolvement', href:'volunteering-involvement.html', model:'cute_toon_tree.glb', height:0.75, rotY:0.4},
+    {label:'Projects', href:'projects.html', model:'robotic_arm.glb', height:1.0, rotY:-0.4, animate:true},
+    {label:'Research', href:'research.html', model:'3d_origami_crane.glb', height:0.5, rotY:2.4}
+  ];
+
+  const gridSpacingX = 3.7, gridSpacingZ = 3.3;
+  const gridPositions = [
+    {x:-gridSpacingX/2, z:-gridSpacingZ/2},
+    {x: gridSpacingX/2, z:-gridSpacingZ/2},
+    {x:-gridSpacingX/2, z: gridSpacingZ/2},
+    {x: gridSpacingX/2, z: gridSpacingZ/2}
+  ];
+
+  function makeLabel(text){
+    const c = document.createElement('canvas');
+    c.width = 512; c.height = 160;
+    const ctx = c.getContext('2d');
+    ctx.font = '400 52px Georgia';
+    ctx.fillStyle = '#f4efe4';
+    ctx.textAlign = 'center';
+    const lines = text.split('\n');
+    const lineHeight = 58;
+    const startY = 160/2 - (lineHeight*(lines.length-1))/2 + 18;
+    lines.forEach((line,i)=> ctx.fillText(line, 256, startY + i*lineHeight));
+    const tex = new THREE.CanvasTexture(c);
+    const mat = new THREE.SpriteMaterial({map:tex, transparent:true});
+    const sprite = new THREE.Sprite(mat);
+    sprite.scale.set(2.6, 0.8, 1);
+    return sprite;
+  }
+
+  const gltfLoader = new THREE.GLTFLoader();
+  const mixers = [];
+  function loadModel(url, targetGroup, targetHeight, rotationY, playAnimation){
+    gltfLoader.load(url, (gltf)=>{
+      const model = gltf.scene;
+      const box = new THREE.Box3().setFromObject(model);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      const scaleFactor = targetHeight / (size.y || 1);
+      model.scale.setScalar(scaleFactor);
+
+      const box2 = new THREE.Box3().setFromObject(model);
+      model.position.set(0, -box2.min.y, 0);
+      if(rotationY) model.rotation.y = rotationY;
+
+      targetGroup.add(model);
+
+      if(playAnimation && gltf.animations && gltf.animations.length){
+        const mixer = new THREE.AnimationMixer(model);
+        gltf.animations.forEach(clip=> mixer.clipAction(clip).play());
+        mixers.push(mixer);
+      }
+    }, undefined, (err)=>{
+      console.error('Failed to load model:', url, err);
+    });
+  }
+
+  const houseMeshes = [];
+
+  buildings.forEach((b, i)=>{
+    const group = new THREE.Group();
+    const pos = gridPositions[i];
+    group.position.set(pos.x, 0, pos.z);
+
+    loadModel(b.model, group, b.height, b.rotY, b.animate);
+
+    const label = makeLabel(b.label);
+    label.position.y = b.height + 0.55;
+    group.add(label);
+
+    group.userData = {
+      baseY: 0,
+      phase: Math.random()*Math.PI*2,
+      wobblePhase: Math.random()*Math.PI*2,
+      href: b.href
+    };
+    group.traverse(o=>{ o.userData.rootHref = b.href; });
+
+    village.add(group);
+    houseMeshes.push(group);
+  });
+
+  let isDragging=false, dragStartX=0, dragStartY=0, rotY=0.5, rotX=-0.22, startRotY=0, startRotX=0;
+  let hasDraggedThisPress = false;
+
+  renderer.domElement.style.cursor = 'grab';
+  renderer.domElement.addEventListener('pointerdown', (e)=>{
+    isDragging = true; hasDraggedThisPress = false;
+    dragStartX = e.clientX; dragStartY = e.clientY;
+    startRotY = rotY; startRotX = rotX;
+    renderer.domElement.style.cursor = 'grabbing';
+  });
+  window.addEventListener('pointermove', (e)=>{
+    if(!isDragging) return;
+    const dx = e.clientX - dragStartX, dy = e.clientY - dragStartY;
+    if(Math.abs(dx) > 4 || Math.abs(dy) > 4) hasDraggedThisPress = true;
+    rotY = startRotY + dx*0.006;
+    rotX = Math.max(-0.5, Math.min(0.15, startRotX + dy*0.004));
+  });
+  window.addEventListener('pointerup', ()=>{
+    isDragging = false;
+    renderer.domElement.style.cursor = 'grab';
+  });
+
+  const raycaster = new THREE.Raycaster();
+  const mouseNDC = new THREE.Vector2();
+
+  function updatePointer(e){
+    const r = renderer.domElement.getBoundingClientRect();
+    mouseNDC.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+    mouseNDC.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+  }
+
+  renderer.domElement.addEventListener('pointermove', updatePointer);
+
+  renderer.domElement.addEventListener('click', (e)=>{
+    if(hasDraggedThisPress) return;
+    updatePointer(e);
+    raycaster.setFromCamera(mouseNDC, camera);
+    const hits = raycaster.intersectObjects(houseMeshes, true);
+    if(hits.length){
+      const href = hits[0].object.userData.rootHref;
+      if(href) window.location.href = href;
+    }
+  });
+
+  function resize(){
+    camera.aspect = villageWrap.clientWidth/villageWrap.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(villageWrap.clientWidth, villageWrap.clientHeight);
+  }
+  window.addEventListener('resize', resize);
+
+  function findHouseRoot(obj){
+    let o = obj;
+    while(o && !o.userData.href) o = o.parent;
+    return o;
+  }
+
+  let lastFrameTime = 0;
+  function animate(t){
+    requestAnimationFrame(animate);
+    const time = t*0.001;
+    const delta = lastFrameTime ? (t - lastFrameTime)/1000 : 0;
+    lastFrameTime = t;
+
+    mixers.forEach(m=> m.update(delta));
+
+    raycaster.setFromCamera(mouseNDC, camera);
+    const hits = raycaster.intersectObjects(houseMeshes, true);
+    const newHover = hits.length ? findHouseRoot(hits[0].object) : null;
+
+    houseMeshes.forEach(house=>{
+      const isHovered = house === newHover;
+      const targetLift = isHovered ? 0.18 : 0;
+      house.userData.currentLift = house.userData.currentLift || 0;
+      house.userData.currentLift += (targetLift - house.userData.currentLift)*0.15;
+      house.position.y = house.userData.baseY + house.userData.currentLift
+        + Math.sin(time*0.5 + house.userData.phase)*0.03;
+      house.rotation.z = Math.sin(time*0.35 + house.userData.wobblePhase)*0.025;
+      house.rotation.x = Math.sin(time*0.28 + house.userData.wobblePhase*1.4)*0.02;
+    });
+    renderer.domElement.style.cursor = newHover ? 'pointer' : (isDragging ? 'grabbing' : 'grab');
+
+    village.rotation.y += (rotY - village.rotation.y)*0.08;
+    village.rotation.x += (rotX - village.rotation.x)*0.08;
+
+    renderer.render(scene, camera);
+  }
+
+  requestAnimationFrame(animate);
+})();
 </script>
 </body>
 </html>

@@ -1036,38 +1036,34 @@ window.addEventListener('scroll', ()=>{
   const village = new THREE.Group();
   scene.add(village);
 
-// Ordered so the two grayish/white objects (arm, crane) land diagonally
-// opposite each other instead of sitting side-by-side in the same row.
-// shadowRadius adds a soft synthetic ground shadow — skipped for the
-// crane, since that model already came with its own baked-in shadow.
-const buildings = [
-  {label:'Education', href:'education.html', model:'blonky_apple.glb', height:1.4, rotY:0.3, shadowRadius:0.5},
-  {label:'Projects', href:'projects.html', model:'robotic_arm.glb', height:2.4, rotY:-0.4, animate:true, shadowRadius:0.65},
-  {label:'Research', href:'research.html', model:'3d_origami_crane.glb', height:1.3, rotY:2.4},
-  {label:'Volunteering &\nInvolvement', href:'volunteering-involvement.html', model:'cute_toon_tree.glb', height:1.9, rotY:0.4, shadowRadius:0.8}
-];
+  const buildings = [
+    {label:'Education', href:'education.html', model:'blonky_apple.glb', height:1.4, rotY:0.3, shadowRadius:0.5},
+    {label:'Projects', href:'projects.html', model:'robotic_arm.glb', height:2.4, rotY:-0.4, animate:true, shadowRadius:1.15},
+    {label:'Research', href:'research.html', model:'3d_origami_crane.glb', height:1.3, rotY:2.4, shadowRadius:0.55, stripMaterial:'Sombra'},
+    {label:'Volunteering &\nInvolvement', href:'volunteering-involvement.html', model:'cute_toon_tree.glb', height:1.9, rotY:0.4, shadowRadius:0.8}
+  ];
 
-// A soft radial-gradient circle used as a cheap, consistent ground
-// shadow under each object
-function makeShadowTexture(){
-  const c = document.createElement('canvas');
-  c.width = 128; c.height = 128;
-  const ctx = c.getContext('2d');
-  const g = ctx.createRadialGradient(64,64,0,64,64,64);
-  g.addColorStop(0, 'rgba(0,0,0,0.35)');
-  g.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0,0,128,128);
-  return new THREE.CanvasTexture(c);
-}
-const shadowTexture = makeShadowTexture();
-function addGroundShadow(group, radius){
-  const mat = new THREE.MeshBasicMaterial({map:shadowTexture, transparent:true, depthWrite:false});
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(radius*2, radius*2), mat);
-  mesh.rotation.x = -Math.PI/2;
-  mesh.position.y = 0.01;
-  group.add(mesh);
-}
+  // A soft radial-gradient circle used as a cheap, consistent ground
+  // shadow under each object
+  function makeShadowTexture(){
+    const c = document.createElement('canvas');
+    c.width = 128; c.height = 128;
+    const ctx = c.getContext('2d');
+    const g = ctx.createRadialGradient(64,64,0,64,64,64);
+    g.addColorStop(0, 'rgba(0,0,0,0.35)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,128,128);
+    return new THREE.CanvasTexture(c);
+  }
+  const shadowTexture = makeShadowTexture();
+  function addGroundShadow(group, radius){
+    const mat = new THREE.MeshBasicMaterial({map:shadowTexture, transparent:true, depthWrite:false});
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(radius*2, radius*2), mat);
+    mesh.rotation.x = -Math.PI/2;
+    mesh.position.y = 0.01;
+    group.add(mesh);
+  }
 
   const gridSpacingX = 5.4, gridSpacingZ = 4.8;
   const gridPositions = [
@@ -1082,12 +1078,17 @@ function addGroundShadow(group, radius){
     c.width = 512; c.height = 160;
     const ctx = c.getContext('2d');
     ctx.font = '400 52px Georgia';
-    ctx.fillStyle = '#f4efe4';
     ctx.textAlign = 'center';
+    ctx.lineWidth = 7;
+    ctx.strokeStyle = 'rgba(11,43,43,0.6)';
+    ctx.fillStyle = '#f4efe4';
     const lines = text.split('\n');
     const lineHeight = 58;
     const startY = 160/2 - (lineHeight*(lines.length-1))/2 + 18;
-    lines.forEach((line,i)=> ctx.fillText(line, 256, startY + i*lineHeight));
+    lines.forEach((line,i)=>{
+      ctx.strokeText(line, 256, startY + i*lineHeight);
+      ctx.fillText(line, 256, startY + i*lineHeight);
+    });
     const tex = new THREE.CanvasTexture(c);
     const mat = new THREE.SpriteMaterial({map:tex, transparent:true});
     const sprite = new THREE.Sprite(mat);
@@ -1097,9 +1098,16 @@ function addGroundShadow(group, radius){
 
   const gltfLoader = new THREE.GLTFLoader();
   const mixers = [];
-  function loadModel(url, targetGroup, targetHeight, rotationY, playAnimation){
+  function loadModel(url, targetGroup, targetHeight, rotationY, playAnimation, stripMaterial){
     gltfLoader.load(url, (gltf)=>{
       const model = gltf.scene;
+
+      if(stripMaterial){
+        model.traverse(o=>{
+          if(o.material && o.material.name === stripMaterial) o.visible = false;
+        });
+      }
+
       const box = new THREE.Box3().setFromObject(model);
       const size = new THREE.Vector3();
       box.getSize(size);
@@ -1129,8 +1137,7 @@ function addGroundShadow(group, radius){
     const pos = gridPositions[i];
     group.position.set(pos.x, 0, pos.z);
 
-    loadModel(b.model, group, b.height, b.rotY, b.animate);
-    loadModel(b.model, group, b.height, b.rotY, b.animate);
+    loadModel(b.model, group, b.height, b.rotY, b.animate, b.stripMaterial);
     if(b.shadowRadius) addGroundShadow(group, b.shadowRadius);
 
     const label = makeLabel(b.label);

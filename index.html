@@ -1568,12 +1568,24 @@ scrollObserver.observe(villageWrap);
   const rippleBand = 45;       // how wide the "active" ring edge is
   const ripplePush = 55;
 
-  function loop(){
-    requestAnimationFrame(loop);
-    const state = window.__pondState;
-    if(!state) return;
-    const wrapRect = wrap.getBoundingClientRect();
-    const now = performance.now();
+  let letterBasesReady = false;
+function computeLetterBases(){
+  const wrapRect = wrap.getBoundingClientRect();
+  letters.forEach(L=>{
+    const rect = L.outer.getBoundingClientRect();
+    L.baseX = rect.left + rect.width/2 - wrapRect.left - L.curX;
+    L.baseY = rect.top + rect.height/2 - wrapRect.top - L.curY;
+  });
+  letterBasesReady = true;
+}
+window.addEventListener('resize', ()=>{ letterBasesReady = false; });
+
+function loop(){
+  requestAnimationFrame(loop);
+  const state = window.__pondState;
+  if(!state) return;
+  if(!letterBasesReady) computeLetterBases();
+  const now = performance.now();;
 
     if(window.__rippleEvents){
       window.__rippleEvents = window.__rippleEvents.filter(ev => (now-ev.start)/1000 < rippleLifetime);
@@ -1581,9 +1593,8 @@ scrollObserver.observe(villageWrap);
     const events = window.__rippleEvents || [];
 
     letters.forEach(L=>{
-      const rect = L.outer.getBoundingClientRect();
-      const cx = rect.left + rect.width/2 - wrapRect.left;
-      const cy = rect.top + rect.height/2 - wrapRect.top;
+      const cx = L.baseX + L.curX;
+      const cy = L.baseY + L.curY;
 
       let targetX = 0, targetY = 0;
       let anyForce = false;

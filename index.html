@@ -378,6 +378,7 @@
   let rainQueue = [];
   let rainSplashes = [];
   let rainAccum = 0;
+  window.__rippleEvents = [];
   function updateWeather(now, dt){
     const intensity = getRainIntensity(now);
     const maxRate = 14; // drops/sec at full downpour
@@ -389,6 +390,7 @@
       rainQueue.push({ uv: {x: x/dispW, y: 1-y/dispH}, strength: 0.3+intensity*0.35 });
       rainSplashes.push({x, y, age:0});
       reactToRaindrop(x, y);
+      window.__rippleEvents.push({x, y, start: performance.now()});
     }
     return intensity;
   }
@@ -472,6 +474,7 @@
   clickStrength = 1.6;
   const cs = toScreen(e.clientX, e.clientY);
   rainSplashes.push({x: cs.x, y: cs.y, age:0});
+  window.__rippleEvents.push({x: cs.x, y: cs.y, start: performance.now()});
 });
 
   let dispW, dispH;
@@ -1300,14 +1303,26 @@ if(themeToggleBtn){
 
   const touchRadius = 70;
   const touchPush = 40;
-  const rippleBand = 16;
-  const ripplePush = 26;
+
+  // Real ripples expand much further and last much longer than the
+  // quick decorative splash rings — these numbers approximate the
+  // actual wave spread you see in the pond simulation.
+  const rippleSpeed = 180;     // pixels per second the ring expands
+  const rippleLifetime = 4.5;  // seconds before a ripple fully fades
+  const rippleBand = 45;       // how wide the "active" ring edge is
+  const ripplePush = 55;
 
   function loop(){
     requestAnimationFrame(loop);
     const state = window.__pondState;
     if(!state) return;
     const wrapRect = wrap.getBoundingClientRect();
+    const now = performance.now();
+
+    if(window.__rippleEvents){
+      window.__rippleEvents = window.__rippleEvents.filter(ev => (now-ev.start)/1000 < rippleLifetime);
+    }
+    const events = window.__rippleEvents || [];
 
     letters.forEach(L=>{
       const rect = L.outer.getBoundingClientRect();
@@ -1317,7 +1332,6 @@ if(themeToggleBtn){
       let targetX = 0, targetY = 0;
       let anyForce = false;
 
-      // direct cursor touch
       const mdx = cx - state.mouseScreen.x, mdy = cy - state.mouseScreen.y;
       const mdist = Math.hypot(mdx, mdy);
       if(mdist < touchRadius && mdist > 0.01){
@@ -1327,16 +1341,15 @@ if(themeToggleBtn){
         anyForce = true;
       }
 
-      // ripple wavefronts (rain drops + clicks) passing through the letter
-      state.rainSplashes.forEach(s=>{
-        const rp = s.age/260;
-        if(rp >= 1) return;
-        const ringRadius = 3 + rp*15;
-        const rdx = cx - s.x, rdy = cy - s.y;
+      events.forEach(ev=>{
+        const age = (now - ev.start)/1000;
+        const ringRadius = age * rippleSpeed;
+        const fade = Math.max(0, 1 - age/rippleLifetime);
+        const rdx = cx - ev.x, rdy = cy - ev.y;
         const rdist = Math.hypot(rdx, rdy);
         const bandDist = Math.abs(rdist - ringRadius);
         if(bandDist < rippleBand && rdist > 0.01){
-          const strength = (1 - bandDist/rippleBand) * (1 - rp) * 0.6;
+          const strength = (1 - bandDist/rippleBand) * fade;
           targetX += (rdx/rdist) * strength * ripplePush;
           targetY += (rdy/rdist) * strength * ripplePush;
           anyForce = true;

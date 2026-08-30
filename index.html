@@ -1036,12 +1036,14 @@ window.addEventListener('scroll', ()=>{
   const village = new THREE.Group();
   scene.add(village);
 
-  const buildings = [
-    {label:'Education', href:'education.html', model:'blonky_apple.glb', height:1.4, rotY:0.3},
-    {label:'Volunteering &\nInvolvement', href:'volunteering-involvement.html', model:'cute_toon_tree.glb', height:1.9, rotY:0.4},
-    {label:'Projects', href:'projects.html', model:'robotic_arm.glb', height:2.4, rotY:-0.4, animate:true},
-    {label:'Research', href:'research.html', model:'3d_origami_crane.glb', height:1.3, rotY:2.4}
-  ];
+ // Ordered so the two grayish/white objects (arm, crane) land diagonally
+// opposite each other instead of sitting side-by-side in the same row
+const buildings = [
+  {label:'Education', href:'education.html', model:'blonky_apple.glb', height:1.4, rotY:0.3},
+  {label:'Projects', href:'projects.html', model:'robotic_arm.glb', height:2.4, rotY:-0.4, animate:true},
+  {label:'Research', href:'research.html', model:'3d_origami_crane.glb', height:1.3, rotY:2.4},
+  {label:'Volunteering &\nInvolvement', href:'volunteering-involvement.html', model:'cute_toon_tree.glb', height:1.9, rotY:0.4}
+];
 
   const gridSpacingX = 5.4, gridSpacingZ = 4.8;
   const gridPositions = [

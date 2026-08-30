@@ -178,3 +178,12 @@ footer a{ text-decoration:none; border-bottom:1px solid var(--line); }
   font-size:.95rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted);
   margin-bottom:.6rem; font-family:'Helvetica Neue',Arial,sans-serif; font-weight:600;
 }
+/* ---- Page transition overlay ---- */
+.page-transition{
+  position:fixed; inset:0; z-index:9999;
+  background:var(--ink); color:var(--paper);
+  display:flex; align-items:center; justify-content:center;
+  font-family:Georgia,serif; font-size:2rem; letter-spacing:.05em;
+  transition:opacity .45s ease;
+}
+.page-transition.hidden{ opacity:0; pointer-events:none; }

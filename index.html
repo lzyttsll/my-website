@@ -782,4 +782,210 @@
       }
 
       octx.save();
-      octx.filter =
+      octx.filter = 'blur(7px)';
+      octx.globalAlpha = 0.38;
+      octx.beginPath();
+      for(let i=0;i<=segs;i++){
+        const a = (i/segs)*Math.PI*2;
+        const rr = edgeR(a);
+        const px = 3+Math.cos(a)*rr, py = 5+Math.sin(a)*rr;
+        if(i===0) octx.moveTo(px,py); else octx.lineTo(px,py);
+      }
+      octx.closePath();
+      octx.fillStyle = '#03110d';
+      octx.fill();
+      octx.restore();
+
+      octx.globalAlpha = 0.9;
+      octx.beginPath();
+      for(let i=0;i<=segs;i++){
+        const a = (i/segs)*Math.PI*2;
+        const rr = edgeR(a);
+        const px = Math.cos(a)*rr, py = Math.sin(a)*rr;
+        if(i===0) octx.moveTo(px,py); else octx.lineTo(px,py);
+      }
+      octx.closePath();
+      const grad = octx.createRadialGradient(-p.r*0.25,-p.r*0.3,2,0,0,p.r*1.05);
+      const clampL = (v)=>Math.max(6,Math.min(76,v));
+      const padBoost = Math.max(0, brightness-0.28)*26;
+      grad.addColorStop(0, `hsl(${124+p.hueTint},32%,${clampL(36+p.lightTint+padBoost)}%)`);
+      grad.addColorStop(0.6, `hsl(${128+p.hueTint},36%,${clampL(22+p.lightTint*0.85+padBoost*0.85)}%)`);
+      grad.addColorStop(1, `hsl(${132+p.hueTint},42%,${clampL(9+p.lightTint*0.6+padBoost*0.6)}%)`);
+      octx.fillStyle = grad;
+      octx.fill();
+
+      // radiating veins fanning from the center, like the reference leaf
+      octx.strokeStyle = 'rgba(15,45,20,0.35)';
+      octx.lineWidth = 1;
+      for(let i=0;i<p.veinCount;i++){
+        const a = (i/p.veinCount)*Math.PI*2;
+        const rr = edgeR(a)*0.94;
+        octx.beginPath();
+        octx.moveTo(0,0);
+        octx.quadraticCurveTo(Math.cos(a)*rr*0.55, Math.sin(a)*rr*0.55, Math.cos(a)*rr, Math.sin(a)*rr);
+        octx.stroke();
+      }
+
+      // soft glossy highlight, upper-left
+      const shine = octx.createRadialGradient(-p.r*0.35,-p.r*0.4,0,-p.r*0.35,-p.r*0.4,p.r*0.9);
+      shine.addColorStop(0,'rgba(255,255,255,0.18)');
+      shine.addColorStop(1,'rgba(255,255,255,0)');
+      octx.fillStyle = shine;
+      octx.beginPath();
+      for(let i=0;i<=segs;i++){
+        const a = (i/segs)*Math.PI*2;
+        const rr = edgeR(a);
+        const px = Math.cos(a)*rr, py = Math.sin(a)*rr;
+        if(i===0) octx.moveTo(px,py); else octx.lineTo(px,py);
+      }
+      octx.closePath();
+      octx.fill();
+
+      octx.strokeStyle='rgba(10,30,15,0.5)';
+      octx.lineWidth=1.2;
+      octx.stroke();
+
+      if(p.flower){
+        octx.save();
+        octx.translate(Math.cos(p.flower.angle)*p.flower.r, Math.sin(p.flower.angle)*p.flower.r);
+        drawFlowerLocal(octx, p.flower.scale, p.flower.scheme, brightness);
+        octx.restore();
+      }
+
+      octx.restore();
+    });
+
+    // free-floating flowers, drifting independently within their own smaller radius
+    waterFlowers.forEach(fl=>{
+      const driftX = Math.sin(t*0.00021+fl.wobble)*4 + Math.sin(t*0.00052+fl.wobble*1.4)*2;
+      const driftY = Math.cos(t*0.00024+fl.wobble*0.8)*3.5;
+      octx.save();
+      octx.translate(fl.x+fl.offX+driftX, fl.y+fl.offY+driftY);
+      octx.rotate(fl.rot + Math.sin(t*0.0004+fl.wobble)*0.06);
+      drawFlowerLocal(octx, fl.scale, fl.scheme, brightness);
+      octx.restore();
+    });
+
+    // raindrop splash rings, fading quickly
+    rainSplashes = rainSplashes.filter(s=>{
+      s.age += 16;
+      const p = s.age/260;
+      if(p >= 1) return false;
+      octx.save();
+      octx.globalAlpha = (1-p)*0.5;
+      octx.strokeStyle = 'rgba(225,236,242,0.9)';
+      octx.lineWidth = 0.6;
+      octx.beginPath();
+      octx.arc(s.x, s.y, 1+p*4, 0, Math.PI*2);
+      octx.stroke();
+      octx.restore();
+      return true;
+    });
+
+    // tie the whole scene's mood (pads, fish, flowers) to the current
+    // time of day and rain, so nothing looks lit independently of the water
+    const sky = skyColorJS(dayPhase);
+    octx.save();
+    octx.globalCompositeOperation = 'multiply';
+    octx.fillStyle = `rgba(${sky[0]|0},${sky[1]|0},${sky[2]|0},0.22)`;
+    octx.fillRect(0,0,dispW,dispH);
+    if(rainIntensity > 0){
+      octx.fillStyle = `rgba(18,20,26,${rainIntensity*0.4})`;
+      octx.fillRect(0,0,dispW,dispH);
+    }
+    octx.restore();
+  }
+
+  // ---------- render loop ----------
+  let curFbo = fboA, curTex = stateA, nextFbo = fboB, nextTex = stateB;
+  let last = performance.now();
+
+  function stepSim(){
+    mouseVel *= 0.88;
+    clickStrength *= 0.8;
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, nextFbo);
+    gl.viewport(0,0,SIM_RES,SIM_RES);
+    gl.useProgram(simProgram);
+    bindQuad(simProgram);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, curTex);
+    gl.uniform1i(gl.getUniformLocation(simProgram,'uState'), 0);
+    gl.uniform2f(gl.getUniformLocation(simProgram,'uTexel'), 1/SIM_RES, 1/SIM_RES);
+    gl.uniform2f(gl.getUniformLocation(simProgram,'uMouse'), mouseUv.x, mouseUv.y);
+    gl.uniform1f(gl.getUniformLocation(simProgram,'uMouseVel'), mouseVel);
+    gl.uniform2f(gl.getUniformLocation(simProgram,'uClickPos'), clickPos.x, clickPos.y);
+    gl.uniform1f(gl.getUniformLocation(simProgram,'uClickStrength'), clickStrength);
+    gl.uniform1f(gl.getUniformLocation(simProgram,'uTime'), performance.now()*0.001);
+
+    const fishPosArr = new Float32Array(20);
+    const fishVelArr = new Float32Array(10);
+    for(let i=0;i<10;i++){
+      const f = fish[i];
+      if(f){
+        fishPosArr[i*2] = f.x/dispW;
+        fishPosArr[i*2+1] = 1.0 - f.y/dispH;
+        fishVelArr[i] = Math.min(1.2, Math.max(0, f.speed - f.baseSpeed*1.35) * 0.9);
+      } else {
+        fishPosArr[i*2] = -1; fishPosArr[i*2+1] = -1; fishVelArr[i] = 0;
+      }
+    }
+    gl.uniform2fv(gl.getUniformLocation(simProgram,'uFishPos'), fishPosArr);
+    gl.uniform1fv(gl.getUniformLocation(simProgram,'uFishVel'), fishVelArr);
+
+    const rainPosArr = new Float32Array(12);
+    const rainStrArr = new Float32Array(6);
+    for(let i=0;i<6;i++){
+      const d = rainQueue.shift();
+      if(d){
+        rainPosArr[i*2] = d.uv.x; rainPosArr[i*2+1] = d.uv.y; rainStrArr[i] = d.strength;
+      } else {
+        rainPosArr[i*2] = -1; rainPosArr[i*2+1] = -1; rainStrArr[i] = 0;
+      }
+    }
+    gl.uniform2fv(gl.getUniformLocation(simProgram,'uRainPos'), rainPosArr);
+    gl.uniform1fv(gl.getUniformLocation(simProgram,'uRainStrength'), rainStrArr);
+
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    const tmpFbo = curFbo; curFbo = nextFbo; nextFbo = tmpFbo;
+    const tmpTex = curTex; curTex = nextTex; nextTex = tmpTex;
+  }
+
+  function renderDisplay(dayPhase, rainIntensity){
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0,0,dispW,dispH);
+    gl.useProgram(displayProgram);
+    bindQuad(displayProgram);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, curTex);
+    gl.uniform1i(gl.getUniformLocation(displayProgram,'uState'), 0);
+    gl.uniform2f(gl.getUniformLocation(displayProgram,'uTexel'), 1/SIM_RES, 1/SIM_RES);
+    const aspect = dispW/dispH;
+    gl.uniform2f(gl.getUniformLocation(displayProgram,'uAspect'), Math.max(aspect,1.0), Math.max(1.0/aspect,1.0));
+    gl.uniform1f(gl.getUniformLocation(displayProgram,'uDayPhase'), dayPhase);
+    gl.uniform1f(gl.getUniformLocation(displayProgram,'uRainIntensity'), rainIntensity);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+
+  function loop(now){
+    const dt = Math.min(32, now-last); last = now;
+    const dayPhase = getDayPhase(now);
+    const rainIntensity = updateWeather(now, dt);
+    const brightness = dayBrightnessJS(dayPhase) * (1 - rainIntensity*0.5);
+    stepSim();
+    renderDisplay(dayPhase, rainIntensity);
+    updateFish(now, dt);
+    updateLilypads();
+    updateWaterFlowers();
+    drawDecor(now, dayPhase, rainIntensity, brightness);
+    requestAnimationFrame(loop);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

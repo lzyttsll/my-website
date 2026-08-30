@@ -1185,7 +1185,7 @@ if(themeToggleBtn){
     village.add(group);
     houseMeshes.push(group);
   });
-
+  
   // ---- walking figure ----
 {
   const figure = new THREE.Group();
@@ -1217,8 +1217,51 @@ if(themeToggleBtn){
 
   village.add(figure);
 
-  // reuses your real objects' actual positions, so the figure is
-  // automatically correct if you ever change the layout
+  // speech bubble above the figure's head
+  const bubbleCanvas = document.createElement('canvas');
+  bubbleCanvas.width = 256; bubbleCanvas.height = 128;
+  const bubbleCtx = bubbleCanvas.getContext('2d');
+  const bubbleTex = new THREE.CanvasTexture(bubbleCanvas);
+  const bubbleMat = new THREE.SpriteMaterial({map:bubbleTex, transparent:true, depthTest:false});
+  const bubbleSprite = new THREE.Sprite(bubbleMat);
+  bubbleSprite.renderOrder = 999;
+  bubbleSprite.scale.set(0.9, 0.45, 1);
+  bubbleSprite.position.set(0, 2.05, 0);
+  bubbleSprite.visible = false;
+  figure.add(bubbleSprite);
+
+  function setBubble(text){
+    if(!text){ bubbleSprite.visible = false; return; }
+    bubbleCtx.clearRect(0,0,256,128);
+    bubbleCtx.fillStyle = '#f4efe4';
+    bubbleCtx.strokeStyle = 'rgba(11,43,43,0.5)';
+    bubbleCtx.lineWidth = 4;
+    const r=22, w=220, h=80, x=18, y=10;
+    bubbleCtx.beginPath();
+    bubbleCtx.moveTo(x+r, y);
+    bubbleCtx.arcTo(x+w, y, x+w, y+h, r);
+    bubbleCtx.arcTo(x+w, y+h, x, y+h, r);
+    bubbleCtx.arcTo(x, y+h, x, y, r);
+    bubbleCtx.arcTo(x, y, x+w, y, r);
+    bubbleCtx.closePath();
+    bubbleCtx.fill();
+    bubbleCtx.stroke();
+    bubbleCtx.beginPath();
+    bubbleCtx.moveTo(114, y+h);
+    bubbleCtx.lineTo(128, y+h+20);
+    bubbleCtx.lineTo(142, y+h);
+    bubbleCtx.closePath();
+    bubbleCtx.fill();
+    bubbleCtx.stroke();
+    bubbleCtx.fillStyle = '#0b2b2b';
+    bubbleCtx.font = '600 34px Georgia';
+    bubbleCtx.textAlign = 'center';
+    bubbleCtx.textBaseline = 'middle';
+    bubbleCtx.fillText(text, 128, y+h/2);
+    bubbleTex.needsUpdate = true;
+    bubbleSprite.visible = true;
+  }
+
   const figureWaypoints = gridPositions;
   const figureCenter = {x:0, z:0};
   const standoff = 0.9; // tune this if the gap to each object looks off
@@ -1254,33 +1297,65 @@ if(themeToggleBtn){
     legL.rotation.z = 0; legR.rotation.z = 0;
     figure.position.y = 0;
   }
+
+  // hover-triggered greeting — waits for the current action to finish
+  // naturally, then waves + twirls, then continues as normal
+  let hoveringFigure = false;
+  let inGreeting = false;
+  let greetingRequested = false;
+  let deferredTransition = null;
+
+  function checkFigureHover(){
+    raycaster.setFromCamera(mouseNDC, camera);
+    hoveringFigure = raycaster.intersectObject(figure, true).length > 0;
+    if(hoveringFigure && !inGreeting && !greetingRequested) greetingRequested = true;
+  }
+  function startGreeting(afterFn){
+    greetingRequested = false;
+    inGreeting = true;
+    deferredTransition = afterFn;
+    fState = 'wave';
+    fStateTime = 0;
+    setBubble('Hi there!');
+    resetFigurePose();
+  }
+
   function finishActionAtObject(){
+    if(greetingRequested){ startGreeting(finishActionAtObject); return; }
     fPhase = 'atCenter';
     fWalkTarget = figureCenter;
     fState = 'walk';
     fStateTime = 0;
+    setBubble(null);
     resetFigurePose();
   }
   function finishActionAtCenter(){
+    if(greetingRequested){ startGreeting(finishActionAtCenter); return; }
     fCurrentWaypoint = (fCurrentWaypoint+1) % figureWaypoints.length;
     fPhase = 'atObject';
     fWalkTarget = approachPoints[fCurrentWaypoint];
     fState = 'walk';
     fStateTime = 0;
+    setBubble(null);
     resetFigurePose();
   }
   function figureArrived(){
+    if(greetingRequested){ startGreeting(figureArrived); return; }
     if(fPhase === 'atObject'){
       fState = 'touch';
+      setBubble(null);
     } else {
-      const centerActions = ['jumpingjacks', 'twirl', 'cheer', 'wave'];
+      const centerActions = ['jumpingjacks', 'cheer'];
       fState = centerActions[Math.floor(Math.random()*centerActions.length)];
+      if(fState === 'jumpingjacks') setBubble('!');
+      else setBubble(null);
     }
     fStateTime = 0;
     resetFigurePose();
   }
 
   window.__updateFigure = function(dt){
+    checkFigureHover();
     fStateTime += dt;
 
     if(fState === 'touch'){
@@ -1295,14 +1370,28 @@ if(themeToggleBtn){
       armR.rotation.x = -1.6;
       armR.rotation.z = Math.sin(fStateTime*6)*0.5;
       figure.position.y = Math.sin(fStateTime*2)*0.02;
-      if(fStateTime > waveDuration) finishActionAtCenter();
+      if(fStateTime > waveDuration){
+        setBubble(null);
+        fState = 'twirl';
+        fStateTime = 0;
+      }
 
     } else if(fState === 'twirl'){
       figure.rotation.y += dt*6;
       armL.rotation.z = 1.1;
       armR.rotation.z = -1.1;
       figure.position.y = Math.abs(Math.sin(fStateTime*6))*0.05;
-      if(fStateTime > twirlDuration) finishActionAtCenter();
+      if(fStateTime > twirlDuration){
+        if(inGreeting){
+          inGreeting = false;
+          const fn = deferredTransition;
+          deferredTransition = null;
+          resetFigurePose();
+          fn();
+        } else {
+          finishActionAtCenter();
+        }
+      }
 
     } else if(fState === 'cheer'){
       const raise = Math.min(1, fStateTime/0.35);
@@ -1345,6 +1434,8 @@ if(themeToggleBtn){
       }
     }
   };
+
+  window.__figureHovering = function(){ return hoveringFigure; };
 }
   let isDragging=false, dragStartX=0, dragStartY=0, rotY=0.5, rotX=-0.22, startRotY=0, startRotX=0;
   let hasDraggedThisPress = false;
@@ -1427,7 +1518,8 @@ if(themeToggleBtn){
       house.rotation.z = Math.sin(time*0.35 + house.userData.wobblePhase)*0.025;
       house.rotation.x = Math.sin(time*0.28 + house.userData.wobblePhase*1.4)*0.02;
     });
-    renderer.domElement.style.cursor = newHover ? 'pointer' : (isDragging ? 'grabbing' : 'grab');
+   const figureHover = window.__figureHovering ? window.__figureHovering() : false;
+  renderer.domElement.style.cursor = (newHover || figureHover) ? 'pointer' : (isDragging ? 'grabbing' : 'grab');
 
     village.rotation.y += (rotY - village.rotation.y)*0.08;
     village.rotation.x += (rotX - village.rotation.x)*0.08;

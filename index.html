@@ -25,7 +25,7 @@
   .explore-intro{ max-width:60ch; color:var(--muted); margin-bottom:2rem; }
   .village-wrap{
   position:relative; width:100%; height:65vh; min-height:460px;
-  background:#0b2b2b; border-radius:2px; overflow:hidden;
+  overflow:hidden;
 }
 .village-wrap canvas{ display:block; }
 </style>
@@ -1019,9 +1019,11 @@ window.addEventListener('scroll', ()=>{
   const villageWrap = document.getElementById('villageWrap');
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(42, villageWrap.clientWidth/villageWrap.clientHeight, 0.1, 100);
-  camera.position.set(0, 4.4, 11.5);
+  camera.position.set(0, 3.4, 8.5);
+  camera.lookAt(0, 1.2, 0);
 
-  const renderer = new THREE.WebGLRenderer({antialias:true});
+  const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+  renderer.setClearColor(0x000000, 0);
   renderer.setSize(villageWrap.clientWidth, villageWrap.clientHeight);
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
   villageWrap.appendChild(renderer.domElement);
@@ -1035,13 +1037,13 @@ window.addEventListener('scroll', ()=>{
   scene.add(village);
 
   const buildings = [
-    {label:'Education', href:'education.html', model:'blonky_apple.glb', height:0.55, rotY:0.3},
-    {label:'Volunteering &\nInvolvement', href:'volunteering-involvement.html', model:'cute_toon_tree.glb', height:0.75, rotY:0.4},
-    {label:'Projects', href:'projects.html', model:'robotic_arm.glb', height:1.0, rotY:-0.4, animate:true},
-    {label:'Research', href:'research.html', model:'3d_origami_crane.glb', height:0.5, rotY:2.4}
+    {label:'Education', href:'education.html', model:'blonky_apple.glb', height:1.4, rotY:0.3},
+    {label:'Volunteering &\nInvolvement', href:'volunteering-involvement.html', model:'cute_toon_tree.glb', height:1.9, rotY:0.4},
+    {label:'Projects', href:'projects.html', model:'robotic_arm.glb', height:2.4, rotY:-0.4, animate:true},
+    {label:'Research', href:'research.html', model:'3d_origami_crane.glb', height:1.3, rotY:2.4}
   ];
 
-  const gridSpacingX = 3.7, gridSpacingZ = 3.3;
+  const gridSpacingX = 5.4, gridSpacingZ = 4.8;
   const gridPositions = [
     {x:-gridSpacingX/2, z:-gridSpacingZ/2},
     {x: gridSpacingX/2, z:-gridSpacingZ/2},
@@ -1104,7 +1106,7 @@ window.addEventListener('scroll', ()=>{
     loadModel(b.model, group, b.height, b.rotY, b.animate);
 
     const label = makeLabel(b.label);
-    label.position.y = b.height + 0.55;
+    label.position.y = b.height + 0.7;
     group.add(label);
 
     group.userData = {

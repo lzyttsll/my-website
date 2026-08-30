@@ -27,8 +27,6 @@
   50% { transform: translate(-1px,2px) rotate(0.2deg); }
   75% { transform: translate(1px,-2px) rotate(-0.15deg); }
 }
-.hero-copy h1{ animation: floatBob 7s ease-in-out infinite; }
-.hero-copy p{ animation: floatBob 8.5s ease-in-out infinite; animation-delay: -2s; }
   .hint.faded{ opacity:0; }
   .explore-intro{ max-width:60ch; color:var(--muted); margin-bottom:2rem; }
   .village-wrap{
@@ -1271,6 +1269,73 @@ if(themeToggleBtn){
   }
 
   requestAnimationFrame(animate);
+})();
+</script>
+
+<script>
+(function(){
+  function splitLetters(el){
+    const text = el.textContent;
+    el.textContent = '';
+    const letters = [];
+    [...text].forEach(ch=>{
+      const outer = document.createElement('span');
+      outer.style.display = 'inline-block';
+      const inner = document.createElement('span');
+      inner.style.display = 'inline-block';
+      inner.textContent = ch === ' ' ? '\u00A0' : ch;
+      const dur = (5 + Math.random()*3).toFixed(2);
+      const delay = (-Math.random()*5).toFixed(2);
+      inner.style.animation = `floatBob ${dur}s ease-in-out infinite`;
+      inner.style.animationDelay = `${delay}s`;
+      outer.appendChild(inner);
+      el.appendChild(outer);
+      letters.push({ outer, curX: 0, curY: 0 });
+    });
+    return letters;
+  }
+
+  const wrap = document.getElementById('pondWrap');
+  const h1 = document.querySelector('.hero-copy h1');
+  const p = document.querySelector('.hero-copy p');
+  if(!wrap || !h1) return;
+
+  const letters = [...splitLetters(h1), ...(p ? splitLetters(p) : [])];
+
+  let mouseX = -9999, mouseY = -9999;
+  wrap.addEventListener('mousemove', (e)=>{
+    const r = wrap.getBoundingClientRect();
+    mouseX = e.clientX - r.left;
+    mouseY = e.clientY - r.top;
+  });
+  wrap.addEventListener('mouseleave', ()=>{ mouseX = -9999; mouseY = -9999; });
+
+  const repelRadius = 90;
+  const maxPush = 46;
+
+  function loop(){
+    requestAnimationFrame(loop);
+    const wrapRect = wrap.getBoundingClientRect();
+    letters.forEach(L=>{
+      const rect = L.outer.getBoundingClientRect();
+      const cx = rect.left + rect.width/2 - wrapRect.left;
+      const cy = rect.top + rect.height/2 - wrapRect.top;
+      const dx = cx - mouseX, dy = cy - mouseY;
+      const dist = Math.hypot(dx, dy);
+      let targetX = 0, targetY = 0;
+      if(dist < repelRadius && dist > 0.01){
+        const strength = 1 - dist/repelRadius;
+        targetX = (dx/dist) * strength * maxPush;
+        targetY = (dy/dist) * strength * maxPush;
+      }
+      // quick to disperse, slow to drift back together
+      const easing = (targetX === 0 && targetY === 0) ? 0.03 : 0.15;
+      L.curX += (targetX - L.curX) * easing;
+      L.curY += (targetY - L.curY) * easing;
+      L.outer.style.transform = `translate(${L.curX.toFixed(2)}px, ${L.curY.toFixed(2)}px)`;
+    });
+  }
+  requestAnimationFrame(loop);
 })();
 </script>
 </body>

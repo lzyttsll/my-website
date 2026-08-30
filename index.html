@@ -1,991 +1,111 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Your Name</title>
-<link rel="stylesheet" href="styles.css" />
-<style>
-  .pond-wrap{position:relative;width:100%;height:88vh;min-height:520px;overflow:hidden;background:#0e3b3a;cursor:crosshair;}
-  .pond-wrap canvas{position:absolute;top:0;left:0;width:100%;height:100%;display:block;}
-  .hero-copy{
-    position:absolute; inset:0; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-end;
-    padding:0 6vw 8vw; pointer-events:none; z-index:5;
-  }
-  .hero-copy h1{ color:var(--paper); font-size:clamp(2.4rem,7vw,5rem); margin:0 0 .2em; text-shadow:0 2px 24px rgba(0,0,0,.35); }
-  .hero-copy p{ color:var(--paper); opacity:.85; font-size:clamp(1rem,1.6vw,1.3rem); max-width:34ch; margin:0; font-weight:300; }
-  .hint{
-    position:absolute; top:9vw; right:6vw; font-size:.78rem; letter-spacing:.14em; text-transform:uppercase;
-    color:var(--paper); opacity:.55; z-index:5; transition:opacity 1.2s ease;
-  }
-  .hint.faded{ opacity:0; }
-  .explore-intro{ max-width:60ch; color:var(--muted); margin-bottom:2rem; }
-</style>
-</head>
-<body>
-
-<nav class="site-nav on-dark" id="siteNav">
-  <a class="brand" href="index.html">Your Name</a>
-  <ul class="links">
-    <li><a href="index.html" class="active">Home</a></li>
-    <li><a href="education.html">Education</a></li>
-    <li><a href="volunteering.html">Volunteering</a></li>
-    <li><a href="projects.html">Projects</a></li>
-    <li><a href="research.html">Research</a></li>
-  </ul>
-</nav>
-
-<div class="pond-wrap" id="pondWrap">
-  <canvas id="gl"></canvas>
-  <canvas id="overlay"></canvas>
-  <div class="hint" id="hint">move the cursor</div>
-  <div class="hero-copy">
-    <h1>Your Name</h1>
-    <p>One line about who you are and what you work on.</p>
-  </div>
-  <div id="fallback" style="display:none;position:absolute;inset:0;color:#eef4ee;font-family:sans-serif;align-items:center;justify-content:center;text-align:center;padding:2rem;z-index:6;">Your browser doesn't support WebGL, which this demo needs.</div>
-</div>
-
-<main>
-  <h2 class="section-title">Explore</h2>
-  <p class="explore-intro">A quick overview of what's on this site — swap these lines for your own summaries.</p>
-  <div class="grid">
-    <div class="card">
-      <h3>Education</h3>
-      <p>Degrees, coursework, and schools — placeholder text to replace.</p>
-      <a class="card-link" href="education.html">View</a>
-    </div>
-    <div class="card">
-      <h3>Volunteering</h3>
-      <p>Organizations and causes you've given time to.</p>
-      <a class="card-link" href="volunteering.html">View</a>
-    </div>
-    <div class="card">
-      <h3>Projects</h3>
-      <p>Things you've built, shipped, or are actively working on.</p>
-      <a class="card-link" href="projects.html">View</a>
-    </div>
-    <div class="card">
-      <h3>Research</h3>
-      <p>Papers, topics, or open questions you're exploring.</p>
-      <a class="card-link" href="research.html">View</a>
-    </div>
-  </div>
-</main>
-
-<footer>
-  <span>&copy; 2026 Your Name</span>
-  <span><a href="mailto:you@example.com">you@example.com</a> &nbsp;·&nbsp; <a href="#">LinkedIn</a> &nbsp;·&nbsp; <a href="#">GitHub</a></span>
-</footer>
-
-<script>
-(function(){
-  const wrap = document.getElementById('pondWrap');
-  const glCanvas = document.getElementById('gl');
-  const overlayCanvas = document.getElementById('overlay');
-  const hint = document.getElementById('hint');
-  const fallback = document.getElementById('fallback');
-  const octx = overlayCanvas.getContext('2d');
-
-  const gl = glCanvas.getContext('webgl') || glCanvas.getContext('experimental-webgl');
-  if(!gl){ fallback.style.display='flex'; return; }
-
-  const floatExt = gl.getExtension('OES_texture_float');
-  gl.getExtension('OES_texture_float_linear');
-  if(!floatExt){ fallback.style.display='flex'; fallback.textContent="Your browser doesn't support the floating-point textures this demo needs."; return; }
-
-  // ---------- shader sources ----------
-  const VERT = `
-    attribute vec2 aPos;
-    varying vec2 vUv;
-    void main(){
-      vUv = aPos*0.5+0.5;
-      gl_Position = vec4(aPos,0.0,1.0);
-    }
-  `;
-
-  const SIM_FRAG = `
-    precision highp float;
-    uniform sampler2D uState;
-    uniform vec2 uTexel;
-    uniform vec2 uMouse;
-    uniform float uMouseVel;
-    uniform vec2 uClickPos;
-    uniform float uClickStrength;
-    uniform float uTime;
-    uniform vec2 uFishPos[10];
-    uniform float uFishVel[10];
-    uniform vec2 uRainPos[6];
-    uniform float uRainStrength[6];
-    varying vec2 vUv;
-
-    float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
-    float vnoise(vec2 p){
-      vec2 i=floor(p), f=fract(p);
-      float a=hash(i), b=hash(i+vec2(1.0,0.0)), c=hash(i+vec2(0.0,1.0)), d=hash(i+vec2(1.0,1.0));
-      vec2 u=f*f*(3.0-2.0*f);
-      return mix(a,b,u.x) + (c-a)*u.y*(1.0-u.x) + (d-b)*u.x*u.y;
-    }
-
-    void main(){
-      vec2 s = texture2D(uState, vUv).rg;
-      float height = s.r;
-      float vel = s.g;
-
-      float hN = texture2D(uState, vUv + vec2(0.0, uTexel.y)).r;
-      float hS = texture2D(uState, vUv - vec2(0.0, uTexel.y)).r;
-      float hE = texture2D(uState, vUv + vec2(uTexel.x, 0.0)).r;
-      float hW = texture2D(uState, vUv - vec2(uTexel.x, 0.0)).r;
-
-      // Uneven "pond floor" makes wavefronts bend as they travel, instead
-      // of staying perfectly circular like a textbook ripple.
-      float speedVar = 0.7 + 0.55*vnoise(vUv*8.0 + 4.0);
-
-      float avg = (hN+hS+hE+hW)*0.25;
-      vel += (avg - height) * 1.5 * speedVar;
-      vel *= 0.96;
-      height += vel;
-
-      // faint ambient chop so the surface is never perfectly glassy
-      height += (vnoise(vUv*50.0 + uTime*0.15) - 0.5) * 0.0009;
-
-      vec2 mouseWarp = vec2(vnoise(vUv*22.0+1.0)-0.5, vnoise(vUv*22.0+7.0)-0.5) * 0.012;
-      float dMouse = distance(vUv, uMouse+mouseWarp);
-      height += uMouseVel * exp(-dMouse*dMouse*2600.0);
-
-      float dClick = distance(vUv, uClickPos);
-      height += uClickStrength * exp(-dClick*dClick*1500.0);
-
-      for(int i=0;i<10;i++){
-        float dFish = distance(vUv, uFishPos[i]);
-        height += uFishVel[i] * exp(-dFish*dFish*900.0) * 0.016;
-      }
-
-      for(int i=0;i<6;i++){
-        float dRain = distance(vUv, uRainPos[i]);
-        height += uRainStrength[i] * exp(-dRain*dRain*6500.0);
-      }
-
-      gl_FragColor = vec4(height, vel, 0.0, 1.0);
-    }
-  `;
-
-  const DISPLAY_FRAG = `
-    precision highp float;
-    uniform sampler2D uState;
-    uniform vec2 uTexel;
-    uniform vec2 uAspect;
-    uniform float uDayPhase;
-    uniform float uRainIntensity;
-    varying vec2 vUv;
-
-    float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
-    float vnoise(vec2 p){
-      vec2 i=floor(p), f=fract(p);
-      float a=hash(i), b=hash(i+vec2(1.0,0.0)), c=hash(i+vec2(0.0,1.0)), d=hash(i+vec2(1.0,1.0));
-      vec2 u=f*f*(3.0-2.0*f);
-      return mix(a,b,u.x) + (c-a)*u.y*(1.0-u.x) + (d-b)*u.x*u.y;
-    }
-    float fbm(vec2 p){
-      float v=0.0, a=0.5;
-      for(int i=0;i<5;i++){ v+=a*vnoise(p); p*=2.02; a*=0.5; }
-      return v;
-    }
-
-    vec3 skyColor(float phase){
-      vec3 dawn  = vec3(0.6,0.68,0.82);
-      vec3 dayC  = vec3(0.3,0.58,0.98);
-      vec3 dusk  = vec3(0.55,0.58,0.78);
-      vec3 night = vec3(0.14,0.19,0.36);
-      float p = fract(phase);
-      if(p < 0.25) return mix(dawn, dayC, p/0.25);
-      if(p < 0.5)  return mix(dayC, dusk, (p-0.25)/0.25);
-      if(p < 0.75) return mix(dusk, night, (p-0.5)/0.25);
-      return mix(night, dawn, (p-0.75)/0.25);
-    }
-    float dayBrightness(float phase){
-      float dawn=0.7, dayC=1.0, dusk=0.62, night=0.28;
-      float p = fract(phase);
-      if(p < 0.25) return mix(dawn, dayC, p/0.25);
-      if(p < 0.5)  return mix(dayC, dusk, (p-0.25)/0.25);
-      if(p < 0.75) return mix(dusk, night, (p-0.5)/0.25);
-      return mix(night, dawn, (p-0.75)/0.25);
-    }
-
-    void main(){
-      vec2 uv = vUv;
-      float h  = texture2D(uState, uv).r;
-      float hN = texture2D(uState, uv + vec2(0.0,uTexel.y)).r;
-      float hS = texture2D(uState, uv - vec2(0.0,uTexel.y)).r;
-      float hE = texture2D(uState, uv + vec2(uTexel.x,0.0)).r;
-      float hW = texture2D(uState, uv - vec2(uTexel.x,0.0)).r;
-
-      float dHdx = (hE-hW) / (2.0*uTexel.x);
-      float dHdy = (hN-hS) / (2.0*uTexel.y);
-      vec3 normal = normalize(vec3(-dHdx*0.55, -dHdy*0.55, 1.0));
-
-      vec2 refractedUv = (uv + normal.xy*0.085) * uAspect;
-
-      float nBig  = fbm(refractedUv*1.8);
-      float nMid  = fbm(refractedUv*5.2 + 8.0);
-      float nFine = fbm(refractedUv*13.0 + 21.0);
-
-      vec3 colorDeep  = vec3(0.008,0.022,0.04);
-      vec3 colorMid   = vec3(0.018,0.05,0.08);
-      vec3 colorLight = vec3(0.035,0.08,0.12);
-
-      vec3 floorColor = mix(colorDeep, colorMid, smoothstep(0.12,0.88,nBig));
-      floorColor = mix(floorColor, colorLight, smoothstep(0.25,0.9,nMid)*0.4);
-      floorColor += (nFine-0.5)*0.014;
-
-      vec3 sky = skyColor(uDayPhase);
-      float amb = dayBrightness(uDayPhase) * (1.0 - uRainIntensity*0.55);
-
-      float laplacian = (hN+hS+hE+hW - 4.0*h);
-      float caustic = clamp(1.0 - laplacian*42.0, 0.0, 3.0);
-      caustic = pow(caustic, 3.0);
-      vec3 causticColor = vec3(0.55,0.68,0.75) * caustic * 0.28 * amb;
-
-      vec3 underwater = floorColor + causticColor;
-
-      vec2 centered = (uv-0.5)*uAspect;
-      float edge = length(centered)*1.15;
-      float depthMix = clamp(edge, 0.0, 1.0);
-      vec3 deepColor = vec3(0.004,0.014,0.03);
-      vec3 waterColor = mix(underwater, deepColor, depthMix*0.8);
-
-      vec3 lightDir = normalize(vec3(-0.35, 0.5, 0.8));
-      vec3 viewDir = vec3(0.0,0.0,1.0);
-      vec3 halfDir = normalize(lightDir+viewDir);
-      float spec = pow(max(dot(normal, halfDir),0.0), 90.0);
-      vec3 specTint = mix(vec3(0.8,0.88,1.0), sky, 0.35);
-      waterColor += specTint * spec * 1.0 * amb * (1.0 - uRainIntensity*0.6);
-
-      float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 3.0);
-      vec3 fresnelTint = mix(vec3(0.3,0.42,0.56), sky, 0.3);
-      waterColor = mix(waterColor, fresnelTint, fresnel*0.18);
-
-      waterColor *= amb;
-      waterColor.b *= 1.0 + amb*0.3;
-      float lum = dot(waterColor, vec3(0.299,0.587,0.114));
-      waterColor = mix(waterColor, vec3(lum)*1.05, uRainIntensity*0.22);
-
-      gl_FragColor = vec4(waterColor, 1.0);
-    }
-  `;
-
-  function compile(type, src){
-    const s = gl.createShader(type);
-    gl.shaderSource(s, src);
-    gl.compileShader(s);
-    if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)){
-      console.error(gl.getShaderInfoLog(s));
-    }
-    return s;
-  }
-  function program(vertSrc, fragSrc){
-    const p = gl.createProgram();
-    gl.attachShader(p, compile(gl.VERTEX_SHADER, vertSrc));
-    gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fragSrc));
-    gl.linkProgram(p);
-    if(!gl.getProgramParameter(p, gl.LINK_STATUS)){
-      console.error(gl.getProgramInfoLog(p));
-    }
-    return p;
-  }
-
-  const simProgram = program(VERT, SIM_FRAG);
-  const displayProgram = program(VERT, DISPLAY_FRAG);
-
-  const quadBuf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
-
-  function bindQuad(prog){
-    const loc = gl.getAttribLocation(prog, 'aPos');
-    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
-    gl.enableVertexAttribArray(loc);
-    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-  }
-
-  const SIM_RES = 256;
-  function makeStateTexture(){
-    const tex = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, SIM_RES, SIM_RES, 0, gl.RGBA, gl.FLOAT, null);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    return tex;
-  }
-  function makeFBO(tex){
-    const fbo = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    return fbo;
-  }
-
-  let stateA = makeStateTexture();
-  let stateB = makeStateTexture();
-  let fboA = makeFBO(stateA);
-  let fboB = makeFBO(stateB);
-
-  // ---------- day/night + weather cycle ----------
-  const DAY_LEN = 240000;   // one full day/night cycle, ms
-  const RAIN_CYCLE_LEN = 90000; // one clear->rain->clear cycle, ms
-  function hashRandom(i){ const x = Math.sin(i*127.1)*43758.5453; return x-Math.floor(x); }
-  function getDayPhase(now){ return (now % DAY_LEN) / DAY_LEN; }
-  function getRainIntensity(now){
-    const cycleIndex = Math.floor(now / RAIN_CYCLE_LEN);
-    const t = (now % RAIN_CYCLE_LEN) / RAIN_CYCLE_LEN;
-    const peak = 0.3 + 0.65*hashRandom(cycleIndex+7.3); // some cycles a light shower, some a downpour
-    if(t < 0.15) return 0;
-    if(t < 0.35) return peak*(t-0.15)/0.2;
-    if(t < 0.6)  return peak;
-    if(t < 0.8)  return peak*(1-(t-0.6)/0.2);
-    return 0;
-  }
-  function dayBrightnessJS(phase){
-    const dawn=0.7, dayC=1.0, dusk=0.62, night=0.28;
-    const p = phase - Math.floor(phase);
-    if(p<0.25) return dawn+(dayC-dawn)*(p/0.25);
-    if(p<0.5) return dayC+(dusk-dayC)*((p-0.25)/0.25);
-    if(p<0.75) return dusk+(night-dusk)*((p-0.5)/0.25);
-    return night+(dawn-night)*((p-0.75)/0.25);
-  }
-  function skyColorJS(phase){
-    const dawn=[153,173,209], dayC=[77,148,250], dusk=[140,148,199], night=[36,48,92];
-    const p = phase - Math.floor(phase);
-    let a,b,t;
-    if(p<0.25){ a=dawn; b=dayC; t=p/0.25; }
-    else if(p<0.5){ a=dayC; b=dusk; t=(p-0.25)/0.25; }
-    else if(p<0.75){ a=dusk; b=night; t=(p-0.5)/0.25; }
-    else { a=night; b=dawn; t=(p-0.75)/0.25; }
-    return [0,1,2].map(i=>a[i]+(b[i]-a[i])*t);
-  }
-
-  let rainQueue = [];
-  let rainSplashes = [];
-  let rainAccum = 0;
-  function updateWeather(now, dt){
-    const intensity = getRainIntensity(now);
-    const maxRate = 14; // drops/sec at full downpour
-    const dropsPerSec = Math.pow(intensity, 1.3) * maxRate;
-    rainAccum += dropsPerSec * dt / 1000;
-    while(rainAccum >= 1){
-      rainAccum -= 1;
-      const x = Math.random()*dispW, y = Math.random()*dispH;
-      rainQueue.push({ uv: {x: x/dispW, y: 1-y/dispH}, strength: 0.22+intensity*0.22 });
-      rainSplashes.push({x, y, age:0});
-      reactToRaindrop(x, y);
-    }
-    return intensity;
-  }
-
-  // A raindrop landing nudges nearby lily pads/flowers outward a little,
-  // and startles a fish it lands directly on.
-  function reactToRaindrop(x, y){
-    const padRadius = 55;
-    lilypads.forEach(p=>{
-      const dx = (p.x+p.offX)-x, dy = (p.y+p.offY)-y;
-      const dist = Math.hypot(dx,dy);
-      if(dist < padRadius && dist > 0.001){
-        const push = (padRadius-dist)/padRadius;
-        p.offX += (dx/dist)*push*3.2;
-        p.offY += (dy/dist)*push*3.2;
-      }
-    });
-    const flowerRadius = 40;
-    waterFlowers.forEach(fl=>{
-      const dx = (fl.x+fl.offX)-x, dy = (fl.y+fl.offY)-y;
-      const dist = Math.hypot(dx,dy);
-      if(dist < flowerRadius && dist > 0.001){
-        const push = (flowerRadius-dist)/flowerRadius;
-        fl.offX += (dx/dist)*push*1.8;
-        fl.offY += (dy/dist)*push*1.8;
-      }
-    });
-    const hitRadius = 20;
-    fish.forEach(f=>{
-      const dx = f.x-x, dy = f.y-y;
-      const dist = Math.hypot(dx,dy);
-      if(dist < hitRadius){
-        f.angle = Math.atan2(dy,dx);
-        f.speed = Math.min(f.baseSpeed*f.fleeMult, f.speed+0.9);
-      }
-    });
-  }
-
-  let mouseUv = {x:-1, y:-1};
-  let mouseVel = 0;
-  let prevMouseUv = {x:-1, y:-1};
-  let clickPos = {x:-1, y:-1};
-  let clickStrength = 0;
-  let hasMoved = false;
-
-  function toUv(clientX, clientY){
-    const r = wrap.getBoundingClientRect();
-    return {
-      x: (clientX - r.left) / r.width,
-      y: 1.0 - (clientY - r.top) / r.height
-    };
-  }
-
-  let mouseScreen = {x:-1000, y:-1000};
-  function toScreen(clientX, clientY){
-    const r = wrap.getBoundingClientRect();
-    return { x: clientX-r.left, y: clientY-r.top };
-  }
-
-  wrap.addEventListener('mousemove', (e)=>{
-    prevMouseUv = mouseUv;
-    mouseUv = toUv(e.clientX, e.clientY);
-    mouseScreen = toScreen(e.clientX, e.clientY);
-    const dx = mouseUv.x-prevMouseUv.x, dy = mouseUv.y-prevMouseUv.y;
-    const speed = Math.min(1.0, Math.hypot(dx,dy)*9);
-    mouseVel = Math.max(mouseVel, speed*0.25);
-    if(!hasMoved){ hasMoved=true; hint.classList.add('faded'); }
-  });
-  wrap.addEventListener('touchmove', (e)=>{
-    const t = e.touches[0]; if(!t) return;
-    prevMouseUv = mouseUv;
-    mouseUv = toUv(t.clientX, t.clientY);
-    mouseScreen = toScreen(t.clientX, t.clientY);
-    const dx = mouseUv.x-prevMouseUv.x, dy = mouseUv.y-prevMouseUv.y;
-    const speed = Math.min(1.0, Math.hypot(dx,dy)*9);
-    mouseVel = Math.max(mouseVel, speed*0.25);
-    if(!hasMoved){ hasMoved=true; hint.classList.add('faded'); }
-  }, {passive:true});
-  wrap.addEventListener('mousedown', (e)=>{
-    clickPos = toUv(e.clientX, e.clientY);
-    clickStrength = 1.6;
-  });
-
-  let dispW, dispH;
-  function resize(){
-    dispW = wrap.clientWidth; dispH = wrap.clientHeight;
-    glCanvas.width = dispW; glCanvas.height = dispH;
-    overlayCanvas.width = dispW; overlayCanvas.height = dispH;
-    initDecor();
-  }
-
-  // ---------- lily pads + fish (2D overlay, grounded with soft shadows) ----------
-  const lilypads = [];
-  const fish = [];
-  const waterFlowers = [];
-  function initDecor(){
-    lilypads.length = 0;
-    for(let k=0;k<6;k++){
-      lilypads.push({
-        x: Math.random()*dispW, y: Math.random()*dispH,
-        offX: 0, offY: 0,
-        r: 26+Math.random()*26, rot: Math.random()*Math.PI*2, wobble: Math.random()*Math.PI*2,
-        seed: Math.random()*1000,
-        ampA: 0.025+Math.random()*0.045,
-        ampB: 0.015+Math.random()*0.03,
-        ampC: 0.008+Math.random()*0.018,
-        freqA: 2+Math.floor(Math.random()*2),
-        freqB: 6+Math.floor(Math.random()*3),
-        freqC: 11+Math.floor(Math.random()*4),
-        notchAngle: Math.random()*Math.PI*2,
-        notchWidth: 0.12+Math.random()*0.14,
-        notchDepth: 0.3+Math.random()*0.25,
-        veinCount: 12+Math.floor(Math.random()*8),
-        hueTint: (Math.random()-0.5)*28,
-        lightTint: (Math.random()-0.5)*34
-      });
-    }
-    fish.length = 0;
-    const koiPalette = ['#e2652f','#e2652f','#1a1a1a','#c22331'];
-    for(let k=0;k<4;k++){
-      const baseSpeed = 0.35+Math.random()*0.4;
-      const spotCount = 2+Math.floor(Math.random()*3);
-      const spots = [];
-      for(let s=0;s<spotCount;s++){
-        spots.push({
-          dx: (Math.random()*0.9-0.25),
-          dy: (Math.random()-0.5)*0.55,
-          rx: 0.16+Math.random()*0.16,
-          ry: 0.11+Math.random()*0.1,
-          color: koiPalette[Math.floor(Math.random()*koiPalette.length)]
-        });
-      }
-      fish.push({
-        x: Math.random()*dispW, y: Math.random()*dispH,
-        angle: Math.random()*Math.PI*2, speed: baseSpeed, baseSpeed: baseSpeed,
-        turnSeed: Math.random()*1000, len: 20+Math.random()*12,
-        spots: spots, wanderAmp: 0.015, avoidRadius: 110, fleeMult: 3.2
-      });
-    }
-
-    // a few tiny baby koi for extra flow and life in the water
-    for(let k=0;k<6;k++){
-      const baseSpeed = 0.5+Math.random()*0.5;
-      const spotCount = 1+Math.floor(Math.random()*2);
-      const spots = [];
-      for(let s=0;s<spotCount;s++){
-        spots.push({
-          dx: (Math.random()*0.9-0.25),
-          dy: (Math.random()-0.5)*0.55,
-          rx: 0.18+Math.random()*0.16,
-          ry: 0.12+Math.random()*0.1,
-          color: koiPalette[Math.floor(Math.random()*koiPalette.length)]
-        });
-      }
-      fish.push({
-        x: Math.random()*dispW, y: Math.random()*dispH,
-        angle: Math.random()*Math.PI*2, speed: baseSpeed, baseSpeed: baseSpeed,
-        turnSeed: Math.random()*1000, len: 7+Math.random()*5,
-        spots: spots, wanderAmp: 0.03, avoidRadius: 130, fleeMult: 4.0
-      });
-    }
-
-    // flowers: some attached to a lily pad (inherit its drift/rotation),
-    // some free-floating on open water (their own smaller-radius drift)
-    waterFlowers.length = 0;
-    const flowerScheme = ()=> Math.random()<0.5
-      ? {tip:'#ffffff', base:'#e4d8c8', midNear:'#f3ece0', innerNear:'#fffaf0'}
-      : {tip:'#fbdbe6', base:'#c94f7c', midNear:'#e984ab', innerNear:'#f7bdd3'};
-    const totalFlowers = 3 + Math.floor(Math.random()*2);
-    const onPadCount = Math.ceil(totalFlowers/2);
-    const padIndices = [...lilypads.keys()].sort(()=>Math.random()-0.5).slice(0, onPadCount);
-    padIndices.forEach(idx=>{
-      const p = lilypads[idx];
-      p.flower = {
-        angle: Math.random()*Math.PI*2,
-        r: p.r*(0.15+Math.random()*0.15),
-        scale: p.r*(0.5+Math.random()*0.2),
-        scheme: flowerScheme()
-      };
-    });
-    for(let k=0;k<totalFlowers-onPadCount;k++){
-      waterFlowers.push({
-        x: Math.random()*dispW, y: Math.random()*dispH,
-        offX: 0, offY: 0,
-        rot: Math.random()*Math.PI*2, wobble: Math.random()*Math.PI*2,
-        scale: 15+Math.random()*8,
-        scheme: flowerScheme()
-      });
-    }
-  }
-
-  function drawFlowerLocal(ctx, scale, scheme, brightness){
-    const b = brightness===undefined ? 1 : brightness;
-    const factor = 0.68 + Math.max(0, b-0.28)*0.95;
-    ctx.save();
-    ctx.filter = `brightness(${factor})`;
-    // soft shadow grounds the flower on the water, same trick as the pads
-    ctx.save();
-    ctx.filter = 'blur(4px)';
-    ctx.globalAlpha = 0.3;
-    ctx.beginPath();
-    ctx.ellipse(2, 3, scale*0.85, scale*0.7, 0, 0, Math.PI*2);
-    ctx.fillStyle = '#020806';
-    ctx.fill();
-    ctx.restore();
-
-    function petal(length, width, colorNear, colorFar){
-      ctx.beginPath();
-      ctx.moveTo(0,0);
-      ctx.bezierCurveTo(-width*0.5,-length*0.22, -width*0.52,-length*0.7, 0,-length);
-      ctx.bezierCurveTo(width*0.52,-length*0.7, width*0.5,-length*0.22, 0,0);
-      ctx.closePath();
-      const g = ctx.createLinearGradient(0,0,0,-length);
-      g.addColorStop(0, colorNear);
-      g.addColorStop(1, colorFar);
-      ctx.fillStyle = g;
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(0,0,0,0.06)';
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
-    }
-
-    // outer ring — widest, flattest petals, laid nearly horizontal (a real
-    // lily's outer perianth grades from sepal-like toward petal-like)
-    const outerCount = 9;
-    for(let i=0;i<outerCount;i++){
-      ctx.save();
-      ctx.rotate((i/outerCount)*Math.PI*2);
-      ctx.scale(1, 0.86);
-      petal(scale*1.0, scale*0.5, scheme.base, scheme.tip);
-      ctx.restore();
-    }
-
-    // middle ring — offset, slightly smaller, more upright
-    const midCount = 8;
-    for(let i=0;i<midCount;i++){
-      ctx.save();
-      ctx.rotate((i/midCount)*Math.PI*2 + Math.PI/midCount);
-      ctx.scale(1, 0.94);
-      petal(scale*0.72, scale*0.36, scheme.midNear, scheme.tip);
-      ctx.restore();
-    }
-
-    // inner ring — small, upright, cupping the center
-    const innerCount = 6;
-    for(let i=0;i<innerCount;i++){
-      ctx.save();
-      ctx.rotate((i/innerCount)*Math.PI*2 + Math.PI/innerCount*0.5);
-      petal(scale*0.42, scale*0.22, scheme.innerNear, '#fffdf7');
-      ctx.restore();
-    }
-
-    // stamen cluster — small yellow filaments rather than one flat disc
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(0,0,scale*0.17,0,Math.PI*2);
-    ctx.fillStyle = '#c98a1c';
-    ctx.fill();
-    for(let i=0;i<10;i++){
-      const a = (i/10)*Math.PI*2;
-      const rr = scale*0.13;
-      ctx.beginPath();
-      ctx.arc(Math.cos(a)*rr, Math.sin(a)*rr, scale*0.045, 0, Math.PI*2);
-      ctx.fillStyle = i%2===0 ? '#f6c94a' : '#e8b23a';
-      ctx.fill();
-    }
-    ctx.restore();
-    ctx.restore();
-  }
-
-  // Free-floating flowers drift out of the cursor's path too, but within
-  // a noticeably smaller radius than the lily pads.
-  function updateWaterFlowers(){
-    const radius = 70;
-    waterFlowers.forEach(fl=>{
-      const curX = fl.x+fl.offX, curY = fl.y+fl.offY;
-      const dx = curX-mouseScreen.x, dy = curY-mouseScreen.y;
-      const dist = Math.hypot(dx,dy);
-      if(dist < radius && dist > 0.001){
-        const push = (radius-dist)/radius;
-        const nx = dx/dist, ny = dy/dist;
-        fl.offX += nx*push*2.6;
-        fl.offY += ny*push*2.6;
-      }
-      fl.offX += (0-fl.offX)*0.05;
-      fl.offY += (0-fl.offY)*0.05;
-      const maxDrift = 16;
-      const od = Math.hypot(fl.offX,fl.offY);
-      if(od > maxDrift){ fl.offX *= maxDrift/od; fl.offY *= maxDrift/od; }
-    });
-  }
-
-  function updateFish(t, dt){
-    fish.forEach(f=>{
-      f.angle += Math.sin(t*0.0006+f.turnSeed)*f.wanderAmp;
-
-      const dx = f.x-mouseScreen.x, dy = f.y-mouseScreen.y;
-      const d = Math.hypot(dx,dy);
-      if(d < f.avoidRadius){
-        const away = Math.atan2(dy,dx);
-        f.angle += (away-f.angle)*0.12;
-        f.speed = Math.min(f.baseSpeed*f.fleeMult, f.speed+0.1);
-      } else {
-        f.speed += (f.baseSpeed-f.speed)*0.03;
-      }
-
-      f.x += Math.cos(f.angle)*f.speed*dt*0.05;
-      f.y += Math.sin(f.angle)*f.speed*dt*0.05;
-      if(f.x<-40) f.x=dispW+40; if(f.x>dispW+40) f.x=-40;
-      if(f.y<-40) f.y=dispH+40; if(f.y>dispH+40) f.y=-40;
-    });
-  }
-
-  // Lily pads rest in place but drift out of the cursor's path within a
-  // radius, then spring back once the cursor moves on.
-  function updateLilypads(){
-    const radius = 130;
-    lilypads.forEach(p=>{
-      const curX = p.x+p.offX, curY = p.y+p.offY;
-      const dx = curX-mouseScreen.x, dy = curY-mouseScreen.y;
-      const dist = Math.hypot(dx,dy);
-      if(dist < radius && dist > 0.001){
-        const push = (radius-dist)/radius;
-        const nx = dx/dist, ny = dy/dist;
-        p.offX += nx*push*4.5;
-        p.offY += ny*push*4.5;
-      }
-      p.offX += (0-p.offX)*0.04;
-      p.offY += (0-p.offY)*0.04;
-      const maxDrift = 42;
-      const od = Math.hypot(p.offX,p.offY);
-      if(od > maxDrift){ p.offX *= maxDrift/od; p.offY *= maxDrift/od; }
-    });
-  }
-
-  function drawDecor(t, dayPhase, rainIntensity, brightness){
-    octx.clearRect(0,0,dispW,dispH);
-
-    // fish — softened, semi-transparent, blurred to feel submerged
-    octx.save();
-    octx.filter = 'blur(1.4px)';
-    fish.forEach(f=>{
-      octx.save();
-      octx.translate(f.x,f.y);
-      octx.rotate(f.angle);
-      octx.globalAlpha = 0.5;
-      const wag = Math.sin(t*0.01*f.speed*3)*0.4;
-      octx.beginPath();
-      octx.moveTo(-f.len*0.5,0);
-      octx.lineTo(-f.len*0.5-7, 5+wag*3);
-      octx.lineTo(-f.len*0.5-7, -5+wag*3);
-      octx.closePath();
-      octx.fillStyle = 'rgba(230,230,222,0.65)';
-      octx.fill();
-
-      octx.beginPath();
-      octx.ellipse(0,0, f.len*0.5, f.len*0.2, 0,0,Math.PI*2);
-      octx.fillStyle = '#f1ece0';
-      octx.fill();
-
-      octx.save();
-      octx.beginPath();
-      octx.ellipse(0,0, f.len*0.5, f.len*0.2, 0,0,Math.PI*2);
-      octx.clip();
-      f.spots.forEach(sp=>{
-        octx.beginPath();
-        octx.ellipse(sp.dx*f.len, sp.dy*f.len, sp.rx*f.len, sp.ry*f.len, 0, 0, Math.PI*2);
-        octx.fillStyle = sp.color;
-        octx.fill();
-      });
-      octx.restore();
-
-      octx.beginPath();
-      octx.ellipse(0,0, f.len*0.5, f.len*0.2, 0,0,Math.PI*2);
-      octx.strokeStyle = 'rgba(0,0,0,0.15)';
-      octx.lineWidth = 0.6;
-      octx.stroke();
-      octx.restore();
-    });
-    octx.restore();
-
-    // lily pads — organic scalloped edge, radiating veins, soft grounding shadow
-    lilypads.forEach(p=>{
-      const driftX = Math.sin(t*0.00016+p.seed)*7 + Math.sin(t*0.00041+p.seed*1.7)*3.5;
-      const driftY = Math.cos(t*0.00019+p.seed*0.6)*6 + Math.sin(t*0.00033+p.seed*2.2)*3;
-      octx.save();
-      octx.translate(p.x+p.offX+driftX, p.y+p.offY+driftY);
-      octx.rotate(p.rot + Math.sin(t*0.0003+p.wobble)*0.05);
-
-      const segs = 56;
-      function edgeR(angle){
-        let rr = p.r * (1
-          + p.ampA*Math.sin(angle*p.freqA+p.seed)
-          + p.ampB*Math.sin(angle*p.freqB+p.seed*2.2)
-          + p.ampC*Math.sin(angle*p.freqC+p.seed*0.7));
-        let da = angle - p.notchAngle;
-        da = Math.atan2(Math.sin(da), Math.cos(da));
-        const dent = p.notchDepth * Math.exp(-(da*da)/(2*p.notchWidth*p.notchWidth));
-        return rr * (1-dent);
-      }
-
-      octx.save();
-      octx.filter = 'blur(7px)';
-      octx.globalAlpha = 0.38;
-      octx.beginPath();
-      for(let i=0;i<=segs;i++){
-        const a = (i/segs)*Math.PI*2;
-        const rr = edgeR(a);
-        const px = 3+Math.cos(a)*rr, py = 5+Math.sin(a)*rr;
-        if(i===0) octx.moveTo(px,py); else octx.lineTo(px,py);
-      }
-      octx.closePath();
-      octx.fillStyle = '#03110d';
-      octx.fill();
-      octx.restore();
-
-      octx.globalAlpha = 0.9;
-      octx.beginPath();
-      for(let i=0;i<=segs;i++){
-        const a = (i/segs)*Math.PI*2;
-        const rr = edgeR(a);
-        const px = Math.cos(a)*rr, py = Math.sin(a)*rr;
-        if(i===0) octx.moveTo(px,py); else octx.lineTo(px,py);
-      }
-      octx.closePath();
-      const grad = octx.createRadialGradient(-p.r*0.25,-p.r*0.3,2,0,0,p.r*1.05);
-      const clampL = (v)=>Math.max(6,Math.min(76,v));
-      const padBoost = Math.max(0, brightness-0.28)*26;
-      grad.addColorStop(0, `hsl(${124+p.hueTint},32%,${clampL(36+p.lightTint+padBoost)}%)`);
-      grad.addColorStop(0.6, `hsl(${128+p.hueTint},36%,${clampL(22+p.lightTint*0.85+padBoost*0.85)}%)`);
-      grad.addColorStop(1, `hsl(${132+p.hueTint},42%,${clampL(9+p.lightTint*0.6+padBoost*0.6)}%)`);
-      octx.fillStyle = grad;
-      octx.fill();
-
-      // radiating veins fanning from the center, like the reference leaf
-      octx.strokeStyle = 'rgba(15,45,20,0.35)';
-      octx.lineWidth = 1;
-      for(let i=0;i<p.veinCount;i++){
-        const a = (i/p.veinCount)*Math.PI*2;
-        const rr = edgeR(a)*0.94;
-        octx.beginPath();
-        octx.moveTo(0,0);
-        octx.quadraticCurveTo(Math.cos(a)*rr*0.55, Math.sin(a)*rr*0.55, Math.cos(a)*rr, Math.sin(a)*rr);
-        octx.stroke();
-      }
-
-      // soft glossy highlight, upper-left
-      const shine = octx.createRadialGradient(-p.r*0.35,-p.r*0.4,0,-p.r*0.35,-p.r*0.4,p.r*0.9);
-      shine.addColorStop(0,'rgba(255,255,255,0.18)');
-      shine.addColorStop(1,'rgba(255,255,255,0)');
-      octx.fillStyle = shine;
-      octx.beginPath();
-      for(let i=0;i<=segs;i++){
-        const a = (i/segs)*Math.PI*2;
-        const rr = edgeR(a);
-        const px = Math.cos(a)*rr, py = Math.sin(a)*rr;
-        if(i===0) octx.moveTo(px,py); else octx.lineTo(px,py);
-      }
-      octx.closePath();
-      octx.fill();
-
-      octx.strokeStyle='rgba(10,30,15,0.5)';
-      octx.lineWidth=1.2;
-      octx.stroke();
-
-      if(p.flower){
-        octx.save();
-        octx.translate(Math.cos(p.flower.angle)*p.flower.r, Math.sin(p.flower.angle)*p.flower.r);
-        drawFlowerLocal(octx, p.flower.scale, p.flower.scheme, brightness);
-        octx.restore();
-      }
-
-      octx.restore();
-    });
-
-    // free-floating flowers, drifting independently within their own smaller radius
-    waterFlowers.forEach(fl=>{
-      const driftX = Math.sin(t*0.00021+fl.wobble)*4 + Math.sin(t*0.00052+fl.wobble*1.4)*2;
-      const driftY = Math.cos(t*0.00024+fl.wobble*0.8)*3.5;
-      octx.save();
-      octx.translate(fl.x+fl.offX+driftX, fl.y+fl.offY+driftY);
-      octx.rotate(fl.rot + Math.sin(t*0.0004+fl.wobble)*0.06);
-      drawFlowerLocal(octx, fl.scale, fl.scheme, brightness);
-      octx.restore();
-    });
-
-    // raindrop splash rings, fading quickly
-    rainSplashes = rainSplashes.filter(s=>{
-      s.age += 16;
-      const p = s.age/260;
-      if(p >= 1) return false;
-      octx.save();
-      octx.globalAlpha = (1-p)*0.5;
-      octx.strokeStyle = 'rgba(225,236,242,0.9)';
-      octx.lineWidth = 0.6;
-      octx.beginPath();
-      octx.arc(s.x, s.y, 1+p*4, 0, Math.PI*2);
-      octx.stroke();
-      octx.restore();
-      return true;
-    });
-
-    // tie the whole scene's mood (pads, fish, flowers) to the current
-    // time of day and rain, so nothing looks lit independently of the water
-    const sky = skyColorJS(dayPhase);
-    octx.save();
-    octx.globalCompositeOperation = 'multiply';
-    octx.fillStyle = `rgba(${sky[0]|0},${sky[1]|0},${sky[2]|0},0.22)`;
-    octx.fillRect(0,0,dispW,dispH);
-    if(rainIntensity > 0){
-      octx.fillStyle = `rgba(18,20,26,${rainIntensity*0.4})`;
-      octx.fillRect(0,0,dispW,dispH);
-    }
-    octx.restore();
-  }
-
-  // ---------- render loop ----------
-  let curFbo = fboA, curTex = stateA, nextFbo = fboB, nextTex = stateB;
-  let last = performance.now();
-
-  function stepSim(){
-    mouseVel *= 0.88;
-    clickStrength *= 0.8;
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, nextFbo);
-    gl.viewport(0,0,SIM_RES,SIM_RES);
-    gl.useProgram(simProgram);
-    bindQuad(simProgram);
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, curTex);
-    gl.uniform1i(gl.getUniformLocation(simProgram,'uState'), 0);
-    gl.uniform2f(gl.getUniformLocation(simProgram,'uTexel'), 1/SIM_RES, 1/SIM_RES);
-    gl.uniform2f(gl.getUniformLocation(simProgram,'uMouse'), mouseUv.x, mouseUv.y);
-    gl.uniform1f(gl.getUniformLocation(simProgram,'uMouseVel'), mouseVel);
-    gl.uniform2f(gl.getUniformLocation(simProgram,'uClickPos'), clickPos.x, clickPos.y);
-    gl.uniform1f(gl.getUniformLocation(simProgram,'uClickStrength'), clickStrength);
-    gl.uniform1f(gl.getUniformLocation(simProgram,'uTime'), performance.now()*0.001);
-
-    const fishPosArr = new Float32Array(20);
-    const fishVelArr = new Float32Array(10);
-    for(let i=0;i<10;i++){
-      const f = fish[i];
-      if(f){
-        fishPosArr[i*2] = f.x/dispW;
-        fishPosArr[i*2+1] = 1.0 - f.y/dispH;
-        fishVelArr[i] = Math.min(1.2, Math.max(0, f.speed - f.baseSpeed*1.35) * 0.9);
-      } else {
-        fishPosArr[i*2] = -1; fishPosArr[i*2+1] = -1; fishVelArr[i] = 0;
-      }
-    }
-    gl.uniform2fv(gl.getUniformLocation(simProgram,'uFishPos'), fishPosArr);
-    gl.uniform1fv(gl.getUniformLocation(simProgram,'uFishVel'), fishVelArr);
-
-    const rainPosArr = new Float32Array(12);
-    const rainStrArr = new Float32Array(6);
-    for(let i=0;i<6;i++){
-      const d = rainQueue.shift();
-      if(d){
-        rainPosArr[i*2] = d.uv.x; rainPosArr[i*2+1] = d.uv.y; rainStrArr[i] = d.strength;
-      } else {
-        rainPosArr[i*2] = -1; rainPosArr[i*2+1] = -1; rainStrArr[i] = 0;
-      }
-    }
-    gl.uniform2fv(gl.getUniformLocation(simProgram,'uRainPos'), rainPosArr);
-    gl.uniform1fv(gl.getUniformLocation(simProgram,'uRainStrength'), rainStrArr);
-
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-    const tmpFbo = curFbo; curFbo = nextFbo; nextFbo = tmpFbo;
-    const tmpTex = curTex; curTex = nextTex; nextTex = tmpTex;
-  }
-
-  function renderDisplay(dayPhase, rainIntensity){
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.viewport(0,0,dispW,dispH);
-    gl.useProgram(displayProgram);
-    bindQuad(displayProgram);
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, curTex);
-    gl.uniform1i(gl.getUniformLocation(displayProgram,'uState'), 0);
-    gl.uniform2f(gl.getUniformLocation(displayProgram,'uTexel'), 1/SIM_RES, 1/SIM_RES);
-    const aspect = dispW/dispH;
-    gl.uniform2f(gl.getUniformLocation(displayProgram,'uAspect'), Math.max(aspect,1.0), Math.max(1.0/aspect,1.0));
-    gl.uniform1f(gl.getUniformLocation(displayProgram,'uDayPhase'), dayPhase);
-    gl.uniform1f(gl.getUniformLocation(displayProgram,'uRainIntensity'), rainIntensity);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-  }
-
-  function loop(now){
-    const dt = Math.min(32, now-last); last = now;
-    const dayPhase = getDayPhase(now);
-    const rainIntensity = updateWeather(now, dt);
-    const brightness = dayBrightnessJS(dayPhase) * (1 - rainIntensity*0.5);
-    stepSim();
-    renderDisplay(dayPhase, rainIntensity);
-    updateFish(now, dt);
-    updateLilypads();
-    updateWaterFlowers();
-    drawDecor(now, dayPhase, rainIntensity, brightness);
-    requestAnimationFrame(loop);
-  }
-
-  window.addEventListener('resize', resize);
-  resize();
-  requestAnimationFrame(loop);
-})();
-</script>
-</body>
-</html>
+:root{
+  --ink:#0b2b2b;
+  --paper:#f4efe4;
+  --accent:#e8935a;
+  --pine:#1f4a34;
+  --line:rgba(11,43,43,0.14);
+  --muted:#5c6f6a;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Helvetica Neue',Arial,sans-serif;
+  line-height:1.55;
+}
+h1,h2,h3{font-family:Georgia,'Iowan Old Style',serif;font-weight:400;margin:0 0 .35em;}
+a{color:inherit;}
+img{max-width:100%;display:block;}
+
+/* ---- Nav ---- */
+.site-nav{
+  position:sticky; top:0; z-index:20;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:1.1rem 6vw;
+  background:rgba(244,239,228,0.94);
+  border-bottom:1px solid var(--line);
+}
+.site-nav .brand{
+  font-family:Georgia,serif; font-size:1.15rem; text-decoration:none; letter-spacing:.01em;
+}
+.site-nav .links{display:flex; gap:2rem; list-style:none; margin:0; padding:0;}
+.site-nav .links a{
+  text-decoration:none; font-size:.85rem; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--muted); padding-bottom:.2rem; border-bottom:1px solid transparent;
+  transition:color .2s ease, border-color .2s ease;
+}
+.site-nav .links a:hover,
+.site-nav .links a.active{ color:var(--ink); border-color:var(--accent); }
+.nav-toggle{ display:none; }
+
+/* nav sitting over a dark hero (home page) */
+.site-nav.on-dark{
+  background:rgba(11,43,43,0.0);
+  border-bottom:1px solid rgba(244,239,228,0.18);
+}
+.site-nav.on-dark .brand{ color:var(--paper); }
+.site-nav.on-dark .links a{ color:rgba(244,239,228,0.75); }
+.site-nav.on-dark .links a:hover,
+.site-nav.on-dark .links a.active{ color:var(--paper); border-color:var(--accent); }
+
+/* ---- Page header (non-home pages) ---- */
+.page-header{
+  padding:9vw 6vw 3vw;
+  border-bottom:1px solid var(--line);
+}
+.page-header .eyebrow{
+  font-size:.78rem; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); margin-bottom:.6em;
+}
+.page-header h1{ font-size:clamp(2rem,4.5vw,3.2rem); }
+.page-header p{ max-width:56ch; color:var(--muted); font-size:1.05rem; }
+
+/* ---- Content sections ---- */
+main{ padding:4vw 6vw 6vw; max-width:1100px; margin:0 auto; }
+.section-title{ font-size:1.1rem; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin:2.4rem 0 1.2rem; }
+
+/* Cards grid (projects, explore) */
+.grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:1.4rem; }
+.card{
+  border:1px solid var(--line); border-radius:2px; padding:1.6rem;
+  background:#fff; transition:transform .18s ease, box-shadow .18s ease;
+}
+.card:hover{ transform:translateY(-3px); box-shadow:0 10px 24px rgba(11,43,43,0.08); }
+.card h3{ font-size:1.15rem; margin-bottom:.4em; }
+.card p{ color:var(--muted); font-size:.95rem; margin:0 0 .8em; }
+.card a.card-link{
+  font-size:.82rem; text-transform:uppercase; letter-spacing:.06em; color:var(--pine);
+  text-decoration:none; border-bottom:1px solid var(--pine);
+}
+.tags{ display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.8rem; }
+.tag{
+  font-size:.72rem; letter-spacing:.04em; text-transform:uppercase; color:var(--pine);
+  background:rgba(31,74,52,0.08); padding:.25em .6em; border-radius:2px;
+}
+
+/* Timeline (education / volunteering) */
+.timeline{ border-left:2px solid var(--line); padding-left:1.6rem; display:flex; flex-direction:column; gap:2.2rem; }
+.timeline-item .when{ font-size:.8rem; letter-spacing:.06em; text-transform:uppercase; color:var(--accent); }
+.timeline-item h3{ margin-top:.25em; font-size:1.2rem; }
+.timeline-item .where{ color:var(--muted); font-size:.95rem; margin-bottom:.4em; }
+.timeline-item p{ color:var(--muted); max-width:64ch; }
+
+/* Research list */
+.pub-list{ display:flex; flex-direction:column; }
+.pub{ padding:1.4rem 0; border-bottom:1px solid var(--line); }
+.pub .venue{ font-size:.8rem; letter-spacing:.06em; text-transform:uppercase; color:var(--pine); }
+.pub h3{ font-size:1.15rem; margin:.3em 0; }
+.pub p{ color:var(--muted); margin:0; max-width:70ch; }
+
+/* ---- Footer ---- */
+footer{
+  padding:3rem 6vw; border-top:1px solid var(--line); color:var(--muted); font-size:.9rem;
+  display:flex; justify-content:space-between; flex-wrap:wrap; gap:1rem;
+}
+footer a{ text-decoration:none; border-bottom:1px solid var(--line); }
+
+@media (max-width:640px){
+  .site-nav{ padding:1rem 5vw; }
+  .site-nav .links{ gap:1.1rem; }
+  .page-header{ padding:22vw 5vw 3vw; }
+}

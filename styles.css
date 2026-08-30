@@ -23,8 +23,7 @@ img{max-width:100%;display:block;}
   position:sticky; top:0; z-index:20;
   display:flex; align-items:center; justify-content:space-between;
   padding:1.1rem 6vw;
-  background:rgba(244,239,228,0.85);
-  backdrop-filter:blur(8px);
+  background:rgba(244,239,228,0.94);
   border-bottom:1px solid var(--line);
 }
 .site-nav .brand{

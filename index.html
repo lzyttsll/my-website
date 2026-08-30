@@ -1298,18 +1298,24 @@ if(themeToggleBtn){
     figure.position.y = 0;
   }
 
-  // hover-triggered greeting — waits for the current action to finish
-  // naturally, then waves + twirls, then continues as normal
-  let hoveringFigure = false;
-  let inGreeting = false;
-  let greetingRequested = false;
-  let deferredTransition = null;
+  // scroll-triggered greeting — plays once, the first time this section
+// scrolls into view, waiting for the current action to finish first
+let inGreeting = false;
+let greetingRequested = false;
+let deferredTransition = null;
+let hasGreetedOnScroll = false;
 
-  function checkFigureHover(){
-    raycaster.setFromCamera(mouseNDC, camera);
-    hoveringFigure = raycaster.intersectObject(figure, true).length > 0;
-    if(hoveringFigure && !inGreeting && !greetingRequested) greetingRequested = true;
-  }
+const scrollObserver = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting && !hasGreetedOnScroll){
+      hasGreetedOnScroll = true;
+      greetingRequested = true;
+      scrollObserver.disconnect();
+    }
+  });
+}, {threshold:0.3});
+scrollObserver.observe(villageWrap);
+  
   function startGreeting(afterFn){
     greetingRequested = false;
     inGreeting = true;
@@ -1355,7 +1361,6 @@ if(themeToggleBtn){
   }
 
   window.__updateFigure = function(dt){
-    checkFigureHover();
     fStateTime += dt;
 
     if(fState === 'touch'){
@@ -1435,7 +1440,6 @@ if(themeToggleBtn){
     }
   };
 
-  window.__figureHovering = function(){ return hoveringFigure; };
 }
   let isDragging=false, dragStartX=0, dragStartY=0, rotY=0.5, rotX=-0.22, startRotY=0, startRotX=0;
   let hasDraggedThisPress = false;
@@ -1518,8 +1522,7 @@ if(themeToggleBtn){
       house.rotation.z = Math.sin(time*0.35 + house.userData.wobblePhase)*0.025;
       house.rotation.x = Math.sin(time*0.28 + house.userData.wobblePhase*1.4)*0.02;
     });
-   const figureHover = window.__figureHovering ? window.__figureHovering() : false;
-  renderer.domElement.style.cursor = (newHover || figureHover) ? 'pointer' : (isDragging ? 'grabbing' : 'grab');
+    renderer.domElement.style.cursor = newHover ? 'pointer' : (isDragging ? 'grabbing' : 'grab');
 
     village.rotation.y += (rotY - village.rotation.y)*0.08;
     village.rotation.x += (rotX - village.rotation.x)*0.08;

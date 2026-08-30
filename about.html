@@ -87,5 +87,22 @@
   <span><a href="mailto:lisarah@usc.edu">lisarah@usc.edu</a> &nbsp;·&nbsp; <a href="https://www.linkedin.com/in/sarah-zhuyutong-li-a16516387" target="_blank">LinkedIn</a> &nbsp;·&nbsp; <a href="https://github.com/lzyttsll" target="_blank">GitHub</a></span>
 </footer>
 
+<script>
+(function(){
+  const overlay = document.getElementById('pageTransition');
+  window.addEventListener('DOMContentLoaded', ()=>{
+    setTimeout(()=> overlay.classList.add('hidden'), 150);
+  });
+  document.querySelectorAll('a[href]').forEach(link=>{
+    const href = link.getAttribute('href');
+    if(!href || href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('#')) return;
+    link.addEventListener('click', (e)=>{
+      e.preventDefault();
+      overlay.classList.remove('hidden');
+      setTimeout(()=>{ window.location.href = href; }, 400);
+    });
+  });
+})();
+</script>
 </body>
 </html>

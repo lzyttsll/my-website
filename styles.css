@@ -226,3 +226,34 @@ body{ transition: background-color .3s ease, color .3s ease; }
 .site-nav.on-dark .theme-toggle{
   border-color:rgba(244,239,228,0.4); color:rgba(244,239,228,0.75);
 }
+
+/* ---- Motion system (one consistent curve + timing scale, used everywhere) ---- */
+:root{
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 150ms;
+  --dur-base: 200ms;
+}
+
+.site-nav .links a{
+  transition: color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.card{
+  transition: transform var(--dur-base) var(--ease), box-shadow var(--dur-base) var(--ease);
+}
+.page-transition{
+  transition: opacity var(--dur-base) var(--ease);
+}
+.theme-toggle{
+  transition: color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.theme-toggle:hover{ transform: scale(1.06); }
+.theme-toggle:active{ transform: scale(0.94); }
+
+/* Respect people who've told their OS they don't want motion */
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

@@ -5,6 +5,7 @@
   --pine:#1f4a34;
   --line:rgba(11,43,43,0.14);
   --muted:#5c6f6a;
+  --hero-text:#f4efe4;
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
@@ -45,7 +46,7 @@ body.home{ padding-top:0; }
 
 /* Homepage nav starts transparent, overlapping the dark pond */
 .site-nav.on-dark{ background:transparent; border-bottom:1px solid rgba(244,239,228,0.18); }
-.site-nav.on-dark .brand{ color:var(--paper); }
+.site-nav.on-dark .brand{ color:var(--hero-text); }
 .site-nav.on-dark .links a{ color:rgba(244,239,228,0.75); }
 .site-nav.on-dark .links a:hover,
 .site-nav.on-dark .links a.active{ color:var(--paper); border-color:var(--accent); }

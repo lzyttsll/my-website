@@ -1073,23 +1073,23 @@ window.addEventListener('scroll', ()=>{
     {x: gridSpacingX/2, z: gridSpacingZ/2}
   ];
 
-  function makeLabel(text){
-    const c = document.createElement('canvas');
-    c.width = 512; c.height = 160;
-    const ctx = c.getContext('2d');
-    ctx.font = '400 52px Georgia';
-    ctx.textAlign = 'center';
-    ctx.lineWidth = 7;
-    ctx.strokeStyle = 'rgba(11,43,43,0.6)';
-    ctx.fillStyle = '#f4efe4';
-    const lines = text.split('\n');
-    const lineHeight = 58;
-    const startY = 160/2 - (lineHeight*(lines.length-1))/2 + 18;
-    lines.forEach((line,i)=>{
-      ctx.strokeText(line, 256, startY + i*lineHeight);
-      ctx.fillText(line, 256, startY + i*lineHeight);
-    });
-    const tex = new THREE.CanvasTexture(c);
+  // Match the current theme at load time — dark ink text in light mode,
+// cream text in dark mode (same colors your nav/toggle already use)
+const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
+const labelColor = isDarkTheme ? '#f4efe4' : '#0b2b2b';
+
+function makeLabel(text){
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 160;
+  const ctx = c.getContext('2d');
+  ctx.font = '400 52px Georgia';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = labelColor;
+  const lines = text.split('\n');
+  const lineHeight = 58;
+  const startY = 160/2 - (lineHeight*(lines.length-1))/2 + 18;
+  lines.forEach((line,i)=> ctx.fillText(line, 256, startY + i*lineHeight));
+  const tex = new THREE.CanvasTexture(c);
     const mat = new THREE.SpriteMaterial({map:tex, transparent:true});
     const sprite = new THREE.Sprite(mat);
     sprite.scale.set(2.6, 0.8, 1);

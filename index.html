@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Your Name</title>
+<link rel="stylesheet" href="styles.css" />
+<style>
+  .pond-wrap{position:relative;width:100%;height:88vh;min-height:520px;overflow:hidden;background:#0e3b3a;cursor:crosshair;}
+  .pond-wrap canvas{position:absolute;top:0;left:0;width:100%;height:100%;display:block;}
+  .hero-copy{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-end;
+    padding:0 6vw 8vw; pointer-events:none; z-index:5;
+  }
+  .hero-copy h1{ color:var(--paper); font-size:clamp(2.4rem,7vw,5rem); margin:0 0 .2em; text-shadow:0 2px 24px rgba(0,0,0,.35); }
+  .hero-copy p{ color:var(--paper); opacity:.85; font-size:clamp(1rem,1.6vw,1.3rem); max-width:34ch; margin:0; font-weight:300; }
+  .hint{
+    position:absolute; top:9vw; right:6vw; font-size:.78rem; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--paper); opacity:.55; z-index:5; transition:opacity 1.2s ease;
+  }
+  .hint.faded{ opacity:0; }
+  .explore-intro{ max-width:60ch; color:var(--muted); margin-bottom:2rem; }
+</style>
+</head>
+<body>
+
+<nav class="site-nav on-dark" id="siteNav">
+  <a class="brand" href="index.html">Your Name</a>
+  <ul class="links">
+    <li><a href="index.html" class="active">Home</a></li>
+    <li><a href="education.html">Education</a></li>
+    <li><a href="volunteering.html">Volunteering</a></li>
+    <li><a href="projects.html">Projects</a></li>
+    <li><a href="research.html">Research</a></li>
+  </ul>
+</nav>
+
+<div class="pond-wrap" id="pondWrap">
+  <canvas id="water"></canvas>
+  <canvas id="overlay"></canvas>
+  <div class="hint" id="hint">move the cursor</div>
+  <div class="hero-copy">
+    <h1>Your Name</h1>
+    <p>One line about who you are and what you work on.</p>
+  </div>
+</div>
+
+<main>
+  <h2 class="section-title">Explore</h2>
+  <p class="explore-intro">A quick overview of what's on this site — swap these lines for your own summaries.</p>
+  <div class="grid">
+    <div class="card">
+      <h3>Education</h3>
+      <p>Degrees, coursework, and schools — placeholder text to replace.</p>
+      <a class="card-link" href="education.html">View</a>
+    </div>
+    <div class="card">
+      <h3>Volunteering</h3>
+      <p>Organizations and causes you've given time to.</p>
+      <a class="card-link" href="volunteering.html">View</a>
+    </div>
+    <div class="card">
+      <h3>Projects</h3>
+      <p>Things you've built, shipped, or are actively working on.</p>
+      <a class="card-link" href="projects.html">View</a>
+    </div>
+    <div class="card">
+      <h3>Research</h3>
+      <p>Papers, topics, or open questions you're exploring.</p>
+      <a class="card-link" href="research.html">View</a>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <span>&copy; 2026 Your Name</span>
+  <span><a href="mailto:you@example.com">you@example.com</a> &nbsp;·&nbsp; <a href="#">LinkedIn</a> &nbsp;·&nbsp; <a href="#">GitHub</a></span>
+</footer>
+
+<script>
+(function(){
+  const wrap = document.getElementById('pondWrap');
+  const waterCanvas = document.getElementById('water');
+  const overlayCanvas = document.getElementById('overlay');
+  const hint = document.getElementById('hint');
+  const wctx = waterCanvas.getContext('2d');
+  const octx = overlayCanvas.getContext('2d');
+  const lowCanvas = document.createElement('canvas');
+  const lowCtx = lowCanvas.getContext('2d');
+
+  const DOWNSCALE = 5;
+  let gw, gh, dispW, dispH;
+  let heightA, heightB, heightC, texture, outImage;
+
+  function lerp(a,b,t){ return a+(b-a)*t; }
+  function noise(x,y){ const v = Math.sin(x*12.9898+y*78.233)*43758.5453; return v-Math.floor(v); }
+
+  function buildTexture(){
+    texture = new Uint8ClampedArray(gw*gh*4);
+    const cx=0.5, cy=0.42;
+    for(let y=0;y<gh;y++){
+      for(let x=0;x<gw;x++){
+        const i=(y*gw+x)*4;
+        const nx=x/gw, ny=y/gh;
+        const d = Math.hypot(nx-cx, ny-cy);
+        const t = Math.min(1, d*1.4);
+        const n = noise(x,y);
+        texture[i]   = lerp(30,8,t) + n*6;
+        texture[i+1] = lerp(96,46,t) + n*8;
+        texture[i+2] = lerp(92,48,t) + n*8;
+        texture[i+3] = 255;
+      }
+    }
+  }
+
+  function resize(){
+    dispW = wrap.clientWidth; dispH = wrap.clientHeight;
+    waterCanvas.width = dispW; waterCanvas.height = dispH;
+    overlayCanvas.width = dispW; overlayCanvas.height = dispH;
+    gw = Math.max(20, Math.floor(dispW/DOWNSCALE));
+    gh = Math.max(20, Math.floor(dispH/DOWNSCALE));
+    heightA = new Float32Array(gw*gh);
+    heightB = new Float32Array(gw*gh);
+    heightC = new Float32Array(gw*gh);
+    outImage = wctx.createImageData(gw,gh);
+    lowCanvas.width = gw; lowCanvas.height = gh;
+    buildTexture();
+  }
+
+  let mouse = {x:-1000,y:-1000};
+  let hasMoved=false;
+
+  function localPos(clientX, clientY){
+    const r = wrap.getBoundingClientRect();
+    return {x: clientX-r.left, y: clientY-r.top};
+  }
+
+  wrap.addEventListener('mousemove', (e)=>{
+    const p = localPos(e.clientX, e.clientY);
+    mouse.x=p.x; mouse.y=p.y;
+    if(!hasMoved){ hasMoved=true; hint.classList.add('faded'); }
+    disturb(p.x, p.y, 2.0);
+  });
+  wrap.addEventListener('touchmove', (e)=>{
+    const t = e.touches[0]; if(!t) return;
+    const p = localPos(t.clientX, t.clientY);
+    mouse.x=p.x; mouse.y=p.y;
+    if(!hasMoved){ hasMoved=true; hint.classList.add('faded'); }
+    disturb(p.x, p.y, 2.0);
+  }, {passive:true});
+  wrap.addEventListener('mousedown', (e)=>{
+    const p = localPos(e.clientX, e.clientY);
+    disturb(p.x, p.y, 9);
+  });
+
+  function disturb(px, py, strength){
+    const gx = Math.floor(px/dispW*gw);
+    const gy = Math.floor(py/dispH*gh);
+    const rad = 2;
+    for(let oy=-rad; oy<=rad; oy++){
+      for(let ox=-rad; ox<=rad; ox++){
+        const x=gx+ox, y=gy+oy;
+        if(x<1||y<1||x>=gw-1||y>=gh-1) continue;
+        const d = Math.hypot(ox,oy);
+        if(d>rad) continue;
+        heightA[y*gw+x] += strength*(1-d/rad);
+      }
+    }
+  }
+
+  function stepWater(){
+    const damping=0.985;
+    for(let y=1;y<gh-1;y++){
+      const row=y*gw;
+      for(let x=1;x<gw-1;x++){
+        const i=row+x;
+        heightC[i] = ((heightA[i-1]+heightA[i+1]+heightA[i-gw]+heightA[i+gw])/2 - heightB[i]) * damping;
+      }
+    }
+    const tmp = heightB; heightB=heightA; heightA=heightC; heightC=tmp;
+  }
+
+  function renderWater(){
+    const data = outImage.data;
+    const REFRACT = 3.2;
+    for(let y=1;y<gh-1;y++){
+      const row=y*gw;
+      for(let x=1;x<gw-1;x++){
+        const i=row+x;
+        const dx = heightA[i+1]-heightA[i-1];
+        const dy = heightA[i+gw]-heightA[i-gw];
+        let sx = x+dx*REFRACT, sy = y+dy*REFRACT;
+        if(sx<0)sx=0; if(sx>=gw)sx=gw-1;
+        if(sy<0)sy=0; if(sy>=gh)sy=gh-1;
+        const si = ((sy|0)*gw+(sx|0))*4;
+        const oi = i*4;
+        const highlight = Math.max(0,(dx*0.5+dy*0.5))*40;
+        data[oi]   = texture[si]+highlight*0.6;
+        data[oi+1] = texture[si+1]+highlight;
+        data[oi+2] = texture[si+2]+highlight;
+        data[oi+3] = 255;
+      }
+    }
+    lowCtx.putImageData(outImage,0,0);
+    wctx.clearRect(0,0,dispW,dispH);
+    wctx.imageSmoothingEnabled = true;
+    wctx.drawImage(lowCanvas,0,0,gw,gh,0,0,dispW,dispH);
+  }
+
+  const lilypads = [];
+  function initLilypads(){
+    lilypads.length=0;
+    for(let k=0;k<6;k++){
+      lilypads.push({
+        x: Math.random()*dispW, y: Math.random()*dispH,
+        r: 26+Math.random()*30, rot: Math.random()*Math.PI*2,
+        wobble: Math.random()*Math.PI*2, hasFlower: Math.random()<0.4
+      });
+    }
+  }
+
+  function drawLilypad(p, t){
+    const gx = Math.max(1,Math.min(gw-2, Math.floor(p.x/dispW*gw)));
+    const gy = Math.max(1,Math.min(gh-2, Math.floor(p.y/dispH*gh)));
+    const h = heightA[gy*gw+gx] || 0;
+    octx.save();
+    octx.translate(p.x + h*1.2, p.y + h*2.5);
+    octx.rotate(p.rot + Math.sin(t*0.3+p.wobble)*0.04);
+    const notch = 0.32;
+    octx.beginPath();
+    octx.moveTo(0,0);
+    octx.arc(0,0,p.r, notch, Math.PI*2-notch);
+    octx.closePath();
+    const grad = octx.createRadialGradient(-p.r*0.3,-p.r*0.3,2,0,0,p.r);
+    grad.addColorStop(0,'#3f7a52'); grad.addColorStop(1,'#1f4a34');
+    octx.fillStyle = grad; octx.fill();
+    octx.strokeStyle='rgba(10,40,28,0.5)'; octx.lineWidth=1.5; octx.stroke();
+    if(p.hasFlower){
+      octx.fillStyle='rgba(255,241,235,0.9)';
+      for(let k=0;k<6;k++){
+        const a = k/6*Math.PI*2;
+        octx.beginPath();
+        octx.ellipse(Math.cos(a)*6, Math.sin(a)*6, 6,3, a, 0, Math.PI*2);
+        octx.fill();
+      }
+      octx.beginPath(); octx.arc(0,0,4,0,Math.PI*2);
+      octx.fillStyle='#e8935a'; octx.fill();
+    }
+    octx.restore();
+  }
+
+  const fish = [];
+  function initFish(){
+    fish.length=0;
+    for(let k=0;k<5;k++){
+      fish.push({
+        x: Math.random()*dispW, y: Math.random()*dispH,
+        angle: Math.random()*Math.PI*2, speed: 0.4+Math.random()*0.5,
+        turnSeed: Math.random()*1000, len: 22+Math.random()*14,
+        kind: Math.random()<0.5 ? 'koi':'shadow'
+      });
+    }
+  }
+
+  function updateFish(t, dt){
+    fish.forEach(f=>{
+      f.angle += Math.sin(t*0.0007+f.turnSeed)*0.02;
+      const dx=f.x-mouse.x, dy=f.y-mouse.y, d=Math.hypot(dx,dy);
+      if(d<110){
+        const away = Math.atan2(dy,dx);
+        f.angle += (away-f.angle)*0.08;
+        f.speed = Math.min(2.6, f.speed+0.06);
+      } else {
+        f.speed += (0.6-f.speed)*0.02;
+      }
+      f.x += Math.cos(f.angle)*f.speed*dt*0.06;
+      f.y += Math.sin(f.angle)*f.speed*dt*0.06;
+      if(f.x<-40) f.x=dispW+40; if(f.x>dispW+40) f.x=-40;
+      if(f.y<-40) f.y=dispH+40; if(f.y>dispH+40) f.y=-40;
+    });
+  }
+
+  function drawFish(f,t){
+    octx.save();
+    octx.translate(f.x,f.y);
+    octx.rotate(f.angle);
+    const wag = Math.sin(t*0.01*f.speed*3)*0.5;
+    octx.globalAlpha = 0.82;
+    octx.beginPath();
+    octx.moveTo(-f.len*0.5,0);
+    octx.lineTo(-f.len*0.5-8, 6+wag*4);
+    octx.lineTo(-f.len*0.5-8, -6+wag*4);
+    octx.closePath();
+    octx.fillStyle = f.kind==='koi' ? '#e8935a' : '#3a4f52';
+    octx.fill();
+    octx.beginPath();
+    octx.ellipse(0,0, f.len*0.5, f.len*0.22, 0,0,Math.PI*2);
+    const g = octx.createLinearGradient(-f.len*0.5,0,f.len*0.5,0);
+    if(f.kind==='koi'){ g.addColorStop(0,'#f2a465'); g.addColorStop(1,'#e8703c'); }
+    else { g.addColorStop(0,'#4d6a67'); g.addColorStop(1,'#26383a'); }
+    octx.fillStyle=g; octx.fill();
+    octx.restore();
+  }
+
+  let last = performance.now();
+  function loop(now){
+    const dt = Math.min(32, now-last); last=now;
+    stepWater();
+    renderWater();
+    octx.clearRect(0,0,dispW,dispH);
+    updateFish(now,dt);
+    fish.forEach(f=>drawFish(f,now));
+    lilypads.forEach(p=>drawLilypad(p,now*0.001));
+    requestAnimationFrame(loop);
+  }
+
+  function init(){
+    resize(); initLilypads(); initFish();
+    requestAnimationFrame(loop);
+  }
+  window.addEventListener('resize', ()=>{ resize(); initLilypads(); initFish(); });
+  init();
+})();
+</script>
+</body>
+</html>

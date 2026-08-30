@@ -1,0 +1,112 @@
+:root{
+  --ink:#0b2b2b;
+  --paper:#f4efe4;
+  --accent:#e8935a;
+  --pine:#1f4a34;
+  --line:rgba(11,43,43,0.14);
+  --muted:#5c6f6a;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Helvetica Neue',Arial,sans-serif;
+  line-height:1.55;
+}
+h1,h2,h3{font-family:Georgia,'Iowan Old Style',serif;font-weight:400;margin:0 0 .35em;}
+a{color:inherit;}
+img{max-width:100%;display:block;}
+
+/* ---- Nav ---- */
+.site-nav{
+  position:sticky; top:0; z-index:20;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:1.1rem 6vw;
+  background:rgba(244,239,228,0.85);
+  backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);
+}
+.site-nav .brand{
+  font-family:Georgia,serif; font-size:1.15rem; text-decoration:none; letter-spacing:.01em;
+}
+.site-nav .links{display:flex; gap:2rem; list-style:none; margin:0; padding:0;}
+.site-nav .links a{
+  text-decoration:none; font-size:.85rem; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--muted); padding-bottom:.2rem; border-bottom:1px solid transparent;
+  transition:color .2s ease, border-color .2s ease;
+}
+.site-nav .links a:hover,
+.site-nav .links a.active{ color:var(--ink); border-color:var(--accent); }
+.nav-toggle{ display:none; }
+
+/* nav sitting over a dark hero (home page) */
+.site-nav.on-dark{
+  background:rgba(11,43,43,0.0);
+  border-bottom:1px solid rgba(244,239,228,0.18);
+}
+.site-nav.on-dark .brand{ color:var(--paper); }
+.site-nav.on-dark .links a{ color:rgba(244,239,228,0.75); }
+.site-nav.on-dark .links a:hover,
+.site-nav.on-dark .links a.active{ color:var(--paper); border-color:var(--accent); }
+
+/* ---- Page header (non-home pages) ---- */
+.page-header{
+  padding:9vw 6vw 3vw;
+  border-bottom:1px solid var(--line);
+}
+.page-header .eyebrow{
+  font-size:.78rem; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); margin-bottom:.6em;
+}
+.page-header h1{ font-size:clamp(2rem,4.5vw,3.2rem); }
+.page-header p{ max-width:56ch; color:var(--muted); font-size:1.05rem; }
+
+/* ---- Content sections ---- */
+main{ padding:4vw 6vw 6vw; max-width:1100px; margin:0 auto; }
+.section-title{ font-size:1.1rem; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin:2.4rem 0 1.2rem; }
+
+/* Cards grid (projects, explore) */
+.grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:1.4rem; }
+.card{
+  border:1px solid var(--line); border-radius:2px; padding:1.6rem;
+  background:#fff; transition:transform .18s ease, box-shadow .18s ease;
+}
+.card:hover{ transform:translateY(-3px); box-shadow:0 10px 24px rgba(11,43,43,0.08); }
+.card h3{ font-size:1.15rem; margin-bottom:.4em; }
+.card p{ color:var(--muted); font-size:.95rem; margin:0 0 .8em; }
+.card a.card-link{
+  font-size:.82rem; text-transform:uppercase; letter-spacing:.06em; color:var(--pine);
+  text-decoration:none; border-bottom:1px solid var(--pine);
+}
+.tags{ display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.8rem; }
+.tag{
+  font-size:.72rem; letter-spacing:.04em; text-transform:uppercase; color:var(--pine);
+  background:rgba(31,74,52,0.08); padding:.25em .6em; border-radius:2px;
+}
+
+/* Timeline (education / volunteering) */
+.timeline{ border-left:2px solid var(--line); padding-left:1.6rem; display:flex; flex-direction:column; gap:2.2rem; }
+.timeline-item .when{ font-size:.8rem; letter-spacing:.06em; text-transform:uppercase; color:var(--accent); }
+.timeline-item h3{ margin-top:.25em; font-size:1.2rem; }
+.timeline-item .where{ color:var(--muted); font-size:.95rem; margin-bottom:.4em; }
+.timeline-item p{ color:var(--muted); max-width:64ch; }
+
+/* Research list */
+.pub-list{ display:flex; flex-direction:column; }
+.pub{ padding:1.4rem 0; border-bottom:1px solid var(--line); }
+.pub .venue{ font-size:.8rem; letter-spacing:.06em; text-transform:uppercase; color:var(--pine); }
+.pub h3{ font-size:1.15rem; margin:.3em 0; }
+.pub p{ color:var(--muted); margin:0; max-width:70ch; }
+
+/* ---- Footer ---- */
+footer{
+  padding:3rem 6vw; border-top:1px solid var(--line); color:var(--muted); font-size:.9rem;
+  display:flex; justify-content:space-between; flex-wrap:wrap; gap:1rem;
+}
+footer a{ text-decoration:none; border-bottom:1px solid var(--line); }
+
+@media (max-width:640px){
+  .site-nav{ padding:1rem 5vw; }
+  .site-nav .links{ gap:1.1rem; }
+  .page-header{ padding:22vw 5vw 3vw; }
+}

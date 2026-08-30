@@ -46,6 +46,15 @@
   </div>
   <div id="fallback" style="display:none;position:absolute;inset:0;color:#eef4ee;font-family:sans-serif;align-items:center;justify-content:center;text-align:center;padding:2rem;z-index:6;">Your browser doesn't support WebGL, which this demo needs.</div>
 </div>
+</div>
+
+  <section class="home-about">
+  <div class="avatar-placeholder-sm">ZL</div>
+  <div>
+    <p>A short sentence or two introducing yourself — who you are and what you're focused on right now.</p>
+    <a class="card-link" href="about.html">More about me →</a>
+  </div>
+</section>
 
 <main>
   <h2 class="section-title">Explore</h2>
@@ -138,7 +147,7 @@
       float hE = texture2D(uState, vUv + vec2(uTexel.x, 0.0)).r;
       float hW = texture2D(uState, vUv - vec2(uTexel.x, 0.0)).r;
 
-      // Uneven "pond floor" makes wavefronts bend as they travel, instead
+      // Uneven " floor" makes wavefronts bend as they travel, instead
       // of staying perfectly circular like a textbook ripple.
       float speedVar = 0.7 + 0.55*vnoise(vUv*8.0 + 4.0);
 

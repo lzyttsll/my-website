@@ -24,6 +24,8 @@
 </head>
 <body>
 
+<div class="page-transition" id="pageTransition">ZL</div>
+
 <nav class="site-nav on-dark" id="siteNav">
   <a class="brand" href="index.html">Zhuyutong Li</a>
   <ul class="links">
@@ -973,6 +975,23 @@
   window.addEventListener('resize', resize);
   resize();
   requestAnimationFrame(loop);
+})();
+</script>
+<script>
+(function(){
+  const overlay = document.getElementById('pageTransition');
+  window.addEventListener('DOMContentLoaded', ()=>{
+    setTimeout(()=> overlay.classList.add('hidden'), 150);
+  });
+  document.querySelectorAll('a[href]').forEach(link=>{
+    const href = link.getAttribute('href');
+    if(!href || href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('#')) return;
+    link.addEventListener('click', (e)=>{
+      e.preventDefault();
+      overlay.classList.remove('hidden');
+      setTimeout(()=>{ window.location.href = href; }, 400);
+    });
+  });
 })();
 </script>
 </body>

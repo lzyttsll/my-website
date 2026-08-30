@@ -468,9 +468,11 @@
     if(!hasMoved){ hasMoved=true; hint.classList.add('faded'); }
   }, {passive:true});
   wrap.addEventListener('mousedown', (e)=>{
-    clickPos = toUv(e.clientX, e.clientY);
-    clickStrength = 1.6;
-  });
+  clickPos = toUv(e.clientX, e.clientY);
+  clickStrength = 1.6;
+  const cs = toScreen(e.clientX, e.clientY);
+  rainSplashes.push({x: cs.x, y: cs.y, age:0});
+});
 
   let dispW, dispH;
   function resize(){
@@ -966,6 +968,7 @@
     updateLilypads();
     updateWaterFlowers();
     drawDecor(now, dayPhase, rainIntensity, brightness);
+    window.__pondState = { mouseScreen: {x:mouseScreen.x, y:mouseScreen.y}, rainSplashes: rainSplashes };
     requestAnimationFrame(loop);
   }
 
@@ -1281,14 +1284,7 @@ if(themeToggleBtn){
     [...text].forEach(ch=>{
       const outer = document.createElement('span');
       outer.style.display = 'inline-block';
-      const inner = document.createElement('span');
-      inner.style.display = 'inline-block';
-      inner.textContent = ch === ' ' ? '\u00A0' : ch;
-      const dur = (5 + Math.random()*3).toFixed(2);
-      const delay = (-Math.random()*5).toFixed(2);
-      inner.style.animation = `floatBob ${dur}s ease-in-out infinite`;
-      inner.style.animationDelay = `${delay}s`;
-      outer.appendChild(inner);
+      outer.textContent = ch === ' ' ? '\u00A0' : ch;
       el.appendChild(outer);
       letters.push({ outer, curX: 0, curY: 0 });
     });
@@ -1302,34 +1298,52 @@ if(themeToggleBtn){
 
   const letters = [...splitLetters(h1), ...(p ? splitLetters(p) : [])];
 
-  let mouseX = -9999, mouseY = -9999;
-  wrap.addEventListener('mousemove', (e)=>{
-    const r = wrap.getBoundingClientRect();
-    mouseX = e.clientX - r.left;
-    mouseY = e.clientY - r.top;
-  });
-  wrap.addEventListener('mouseleave', ()=>{ mouseX = -9999; mouseY = -9999; });
-
-  const repelRadius = 90;
-  const maxPush = 46;
+  const touchRadius = 70;
+  const touchPush = 40;
+  const rippleBand = 16;
+  const ripplePush = 26;
 
   function loop(){
     requestAnimationFrame(loop);
+    const state = window.__pondState;
+    if(!state) return;
     const wrapRect = wrap.getBoundingClientRect();
+
     letters.forEach(L=>{
       const rect = L.outer.getBoundingClientRect();
       const cx = rect.left + rect.width/2 - wrapRect.left;
       const cy = rect.top + rect.height/2 - wrapRect.top;
-      const dx = cx - mouseX, dy = cy - mouseY;
-      const dist = Math.hypot(dx, dy);
+
       let targetX = 0, targetY = 0;
-      if(dist < repelRadius && dist > 0.01){
-        const strength = 1 - dist/repelRadius;
-        targetX = (dx/dist) * strength * maxPush;
-        targetY = (dy/dist) * strength * maxPush;
+      let anyForce = false;
+
+      // direct cursor touch
+      const mdx = cx - state.mouseScreen.x, mdy = cy - state.mouseScreen.y;
+      const mdist = Math.hypot(mdx, mdy);
+      if(mdist < touchRadius && mdist > 0.01){
+        const s = (1 - mdist/touchRadius);
+        targetX += (mdx/mdist) * s * touchPush;
+        targetY += (mdy/mdist) * s * touchPush;
+        anyForce = true;
       }
-      // quick to disperse, slow to drift back together
-      const easing = (targetX === 0 && targetY === 0) ? 0.03 : 0.15;
+
+      // ripple wavefronts (rain drops + clicks) passing through the letter
+      state.rainSplashes.forEach(s=>{
+        const rp = s.age/260;
+        if(rp >= 1) return;
+        const ringRadius = 3 + rp*15;
+        const rdx = cx - s.x, rdy = cy - s.y;
+        const rdist = Math.hypot(rdx, rdy);
+        const bandDist = Math.abs(rdist - ringRadius);
+        if(bandDist < rippleBand && rdist > 0.01){
+          const strength = (1 - bandDist/rippleBand) * (1 - rp) * 0.6;
+          targetX += (rdx/rdist) * strength * ripplePush;
+          targetY += (rdy/rdist) * strength * ripplePush;
+          anyForce = true;
+        }
+      });
+
+      const easing = anyForce ? 0.18 : 0.035;
       L.curX += (targetX - L.curX) * easing;
       L.curY += (targetY - L.curY) * easing;
       L.outer.style.transform = `translate(${L.curX.toFixed(2)}px, ${L.curY.toFixed(2)}px)`;

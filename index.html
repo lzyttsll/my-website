@@ -1366,11 +1366,11 @@ if(themeToggleBtn){
       if(fStateTime > touchDuration) finishActionAtObject();
 
     } else if(fState === 'wave'){
-      figure.rotation.y = 0;
-      armR.rotation.x = -1.6;
-      armR.rotation.z = Math.sin(fStateTime*6)*0.5;
-      figure.position.y = Math.sin(fStateTime*2)*0.02;
-      if(fStateTime > waveDuration){
+    figure.rotation.y += (0 - figure.rotation.y) * 0.15;
+    armR.rotation.x = -1.6;
+    armR.rotation.z = Math.sin(fStateTime*6)*0.5;
+    figure.position.y = Math.sin(fStateTime*2)*0.02;
+    if(fStateTime > waveDuration){
         setBubble(null);
         fState = 'twirl';
         fStateTime = 0;

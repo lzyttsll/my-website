@@ -1300,6 +1300,31 @@ if(themeToggleBtn){
     legL.rotation.z = 0; legR.rotation.z = 0;
     figure.position.y = 0;
   }
+  // Lies down while the tab is hidden, stands back up and resumes
+// exactly where it left off when you return
+let isLyingDown = false;
+let savedFigureState = null;
+
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){
+    savedFigureState = { fState, fStateTime, fWalkTarget, fPhase, fCurrentWaypoint };
+    isLyingDown = true;
+    figure.rotation.x = Math.PI/2;
+    resetFigurePose();
+    setBubble('Zzz');
+  } else {
+    figure.rotation.x = 0;
+    if(savedFigureState){
+      fState = savedFigureState.fState;
+      fStateTime = savedFigureState.fStateTime;
+      fWalkTarget = savedFigureState.fWalkTarget;
+      fPhase = savedFigureState.fPhase;
+      fCurrentWaypoint = savedFigureState.fCurrentWaypoint;
+    }
+    isLyingDown = false;
+    setBubble(null);
+  }
+});
 
   // scroll-triggered greeting — plays once, the first time this section
 // scrolls into view, waiting for the current action to finish first
@@ -1364,6 +1389,7 @@ scrollObserver.observe(villageWrap);
   }
 
   window.__updateFigure = function(dt){
+    if(isLyingDown) return;
     fStateTime += dt;
 
     if(fState === 'touch'){

@@ -891,9 +891,7 @@
 
   let curFbo = fboA, curTex = stateA, nextFbo = fboB, nextTex = stateB;
   let last = performance.now();
-  document.addEventListener('visibilitychange', ()=>{
-  if(!document.hidden) last = performance.now();
-});
+  window.addEventListener('focus', ()=>{ last = performance.now(); });
 
   function stepSim(){
     mouseVel *= 0.88;
@@ -1305,25 +1303,24 @@ if(themeToggleBtn){
 let isLyingDown = false;
 let savedFigureState = null;
 
-document.addEventListener('visibilitychange', ()=>{
-  if(document.hidden){
-    savedFigureState = { fState, fStateTime, fWalkTarget, fPhase, fCurrentWaypoint };
-    isLyingDown = true;
-    figure.rotation.x = Math.PI/2;
-    resetFigurePose();
-    setBubble('Zzz');
-  } else {
-    figure.rotation.x = 0;
-    if(savedFigureState){
-      fState = savedFigureState.fState;
-      fStateTime = savedFigureState.fStateTime;
-      fWalkTarget = savedFigureState.fWalkTarget;
-      fPhase = savedFigureState.fPhase;
-      fCurrentWaypoint = savedFigureState.fCurrentWaypoint;
-    }
-    isLyingDown = false;
-    setBubble(null);
+window.addEventListener('blur', ()=>{
+  savedFigureState = { fState, fStateTime, fWalkTarget, fPhase, fCurrentWaypoint };
+  isLyingDown = true;
+  figure.rotation.x = Math.PI/2;
+  resetFigurePose();
+  setBubble('Zzz');
+});
+window.addEventListener('focus', ()=>{
+  figure.rotation.x = 0;
+  if(savedFigureState){
+    fState = savedFigureState.fState;
+    fStateTime = savedFigureState.fStateTime;
+    fWalkTarget = savedFigureState.fWalkTarget;
+    fPhase = savedFigureState.fPhase;
+    fCurrentWaypoint = savedFigureState.fCurrentWaypoint;
   }
+  isLyingDown = false;
+  setBubble(null);
 });
 
   // scroll-triggered greeting — plays once, the first time this section
@@ -1528,9 +1525,7 @@ scrollObserver.observe(villageWrap);
   }
 
   let lastFrameTime = 0;
-  document.addEventListener('visibilitychange', ()=>{
-  if(!document.hidden) lastFrameTime = 0;
-  });
+  window.addEventListener('focus', ()=>{ lastFrameTime = 0; });
 function animate(t){
     requestAnimationFrame(animate);
     const time = t*0.001;

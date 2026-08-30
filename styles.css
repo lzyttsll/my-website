@@ -19,17 +19,22 @@ a{color:inherit;}
 img{max-width:100%;display:block;}
 
 /* ---- Nav ---- */
+body{ padding-top:76px; }
+body.home{ padding-top:0; }
+
 .site-nav{
-  position:sticky; top:0; z-index:20;
+  position:fixed; top:0; left:0; right:0; z-index:20;
+  height:76px; box-sizing:border-box;
   display:flex; align-items:center; justify-content:space-between;
-  padding:1.1rem 6vw;
-  background:rgba(244,239,228,0.94);
+  padding:0 6vw;
+  background:var(--paper);
   border-bottom:1px solid var(--line);
+  transition:background-color .25s ease, border-color .25s ease;
 }
 .site-nav .brand{
   font-family:Georgia,serif; font-size:1.15rem; text-decoration:none; letter-spacing:.01em;
 }
-.site-nav .links{display:flex; gap:2rem; list-style:none; margin:0; padding:0;}
+.site-nav .links{display:flex; align-items:center; gap:2rem; list-style:none; margin:0; padding:0;}
 .site-nav .links a{
   text-decoration:none; font-size:.85rem; letter-spacing:.06em; text-transform:uppercase;
   color:var(--muted); padding-bottom:.2rem; border-bottom:1px solid transparent;
@@ -37,17 +42,20 @@ img{max-width:100%;display:block;}
 }
 .site-nav .links a:hover,
 .site-nav .links a.active{ color:var(--ink); border-color:var(--accent); }
-.nav-toggle{ display:none; }
 
-/* nav sitting over a dark hero (home page) */
-.site-nav.on-dark{
-  background:rgba(11,43,43,0.0);
-  border-bottom:1px solid rgba(244,239,228,0.18);
-}
+/* Homepage nav starts transparent, overlapping the dark pond */
+.site-nav.on-dark{ background:transparent; border-bottom:1px solid rgba(244,239,228,0.18); }
 .site-nav.on-dark .brand{ color:var(--paper); }
 .site-nav.on-dark .links a{ color:rgba(244,239,228,0.75); }
 .site-nav.on-dark .links a:hover,
 .site-nav.on-dark .links a.active{ color:var(--paper); border-color:var(--accent); }
+
+/* ...then becomes solid once you scroll past the hero */
+.site-nav.on-dark.scrolled{ background:var(--paper); border-bottom:1px solid var(--line); }
+.site-nav.on-dark.scrolled .brand{ color:var(--ink); }
+.site-nav.on-dark.scrolled .links a{ color:var(--muted); }
+.site-nav.on-dark.scrolled .links a:hover,
+.site-nav.on-dark.scrolled .links a.active{ color:var(--ink); border-color:var(--accent); }
 
 /* ---- Page header (non-home pages) ---- */
 .page-header{

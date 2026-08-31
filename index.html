@@ -1003,12 +1003,20 @@ function initWaterSound(){
   audioEl.crossOrigin = 'anonymous';
   const track = audioCtx.createMediaElementSource(audioEl);
   const waterBoost = audioCtx.createGain();
-  waterBoost.gain.value = 3; // amplifies beyond the recording's original level
+  waterBoost.gain.value = 6; // amplifies beyond the recording's original level
   noiseGain = audioCtx.createGain();
   noiseGain.gain.value = 0;
   track.connect(waterBoost);
   waterBoost.connect(noiseGain);
-  noiseGain.connect(audioCtx.destination);
+    const compressor = audioCtx.createDynamicsCompressor();
+  compressor.threshold.value = -24;
+  compressor.knee.value = 30;
+  compressor.ratio.value = 12;
+  compressor.attack.value = 0.003;
+  compressor.release.value = 0.25;
+  compressor.connect(audioCtx.destination);
+
+  noiseGain.connect(compressor);
   audioEl.play();
 
   const rainEl = new Audio('rain-sound.mp3');
@@ -1016,12 +1024,12 @@ function initWaterSound(){
   rainEl.crossOrigin = 'anonymous';
   const rainTrack = audioCtx.createMediaElementSource(rainEl);
   const rainBoost = audioCtx.createGain();
-  rainBoost.gain.value = 3;
+  rainBoost.gain.value = 6;
   rainGain = audioCtx.createGain();
   rainGain.gain.value = 0;
   rainTrack.connect(rainBoost);
   rainBoost.connect(rainGain);
-  rainGain.connect(audioCtx.destination);
+  rainGain.connect(compressor);
   rainEl.play();
 }
 

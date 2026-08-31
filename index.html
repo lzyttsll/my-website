@@ -502,11 +502,11 @@
 });
     // Lets other scripts (like the letters) trigger a real ripple at a
   // specific spot on the water, same as a raindrop or click would
-    window.__triggerRipple = function(screenX, screenY, strength){
+    window.__triggerRipple = function(screenX, screenY, strength, isEmergence){
     const uv = { x: screenX/dispW, y: 1 - screenY/dispH };
     rainQueue.push({ uv, strength: strength || 0.9 });
     rainSplashes.push({x: screenX, y: screenY, age:0});
-    window.__rippleEvents.push({x: screenX, y: screenY, start: performance.now()});
+    window.__rippleEvents.push({x: screenX, y: screenY, start: performance.now(), isEmergence: !!isEmergence});
     if(window.__soundEnabled && window.__playSplash) window.__playSplash();
   };
   let dispW, dispH;
@@ -1117,7 +1117,7 @@ window.__playChime = playChime;
 
   const noteGain = audioCtx.createGain();
   noteGain.gain.setValueAtTime(0, audioCtx.currentTime);
-  noteGain.gain.linearRampToValueAtTime(0.28, audioCtx.currentTime + 0.008);
+  noteGain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.008);
   noteGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
 
   osc.connect(noteGain);
@@ -1819,7 +1819,7 @@ function animate(t){
   const submergeOffset = 70; // how many pixels "underwater" each letter starts
 
   const touchRadius = 70;
-  const touchPush = 18;
+  const touchPush = 30;
 
   // Real ripples expand much further and last much longer than the
   // quick decorative splash rings — these numbers approximate the
@@ -1827,7 +1827,7 @@ function animate(t){
   const rippleSpeed = 180;     // pixels per second the ring expands
   const rippleLifetime = 4.5;  // seconds before a ripple fully fades
   const rippleBand = 45;       // how wide the "active" ring edge is
-  const ripplePush = 20;
+  const ripplePush = 40;
 
   let letterBasesReady = false;
 function computeLetterBases(){
@@ -1859,7 +1859,7 @@ function loop(){
         L.outer.style.clipPath = 'inset(0 0 0% 0)';
         L.curY = submergeOffset;
         if(window.__triggerRipple){
-          window.__triggerRipple(L.baseX, L.baseY, 0.5 + Math.random()*0.3);
+          window.__triggerRipple(L.baseX, L.baseY, 0.5 + Math.random()*0.3, true);
         }
       }
 
@@ -1884,7 +1884,7 @@ function loop(){
         L.hasChimed = false;
       }
 
-      events.forEach(ev=>{
+        events.forEach(ev=>{
         const age = (now - ev.start)/1000;
         const ringRadius = age * rippleSpeed;
         const fade = Math.max(0, 1 - age/rippleLifetime);
@@ -1893,8 +1893,9 @@ function loop(){
         const bandDist = Math.abs(rdist - ringRadius);
         if(bandDist < rippleBand && rdist > 0.01){
           const strength = (1 - bandDist/rippleBand) * fade;
-          targetX += (rdx/rdist) * strength * ripplePush;
-          targetY += (rdy/rdist) * strength * ripplePush;
+          const push = ev.isEmergence ? ripplePush * 0.1 : ripplePush;
+          targetX += (rdx/rdist) * strength * push;
+          targetY += (rdy/rdist) * strength * push;
           anyForce = true;
         }
       });
@@ -1902,13 +1903,6 @@ function loop(){
             // Cap how far any push (ripple, cursor, or a neighboring letter's
       // own emergence) can nudge a letter — keeps it a gentle bobble
       // instead of a noticeable drift
-      const maxDrift = 6;
-      const driftDist = Math.hypot(targetX, targetY);
-      if(driftDist > maxDrift){
-        targetX = (targetX/driftDist)*maxDrift;
-        targetY = (targetY/driftDist)*maxDrift;
-      }
-
       const easing = anyForce ? 0.18 : 0.035;
       L.curX += (targetX - L.curX) * easing;
       L.curY += (targetY - L.curY) * easing;

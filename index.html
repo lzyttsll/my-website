@@ -1729,11 +1729,25 @@ function animate(t){
       outer.style.display = 'inline-block';
       outer.textContent = ch === ' ' ? '\u00A0' : ch;
       el.appendChild(outer);
-      const pentatonic = [523.25, 587.33, 659.25, 783.99, 880.00]; // C, D, E, G, A — always sounds pleasant together
-      letters.push({ outer, curX: 0, curY: 0, note: pentatonic[letters.length % pentatonic.length], hasChimed: false });
+            letters.push({ outer, curX: 0, curY: 0, note: 0, hasChimed: false });
     });
     return letters;
   }
+
+  const wrap = document.getElementById('pondWrap');
+  const h1 = document.querySelector('.hero-copy h1');
+  const p = document.querySelector('.hero-copy p');
+  if(!wrap || !h1) return;
+
+  const letters = [...splitLetters(h1), ...(p ? splitLetters(p) : [])];
+
+  // A wider scale spread evenly across every letter, so sweeping left to
+  // right plays one continuous ascending run rather than repeating notes
+  const scale = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25, 783.99, 880.00, 1046.50];
+  letters.forEach((L, i)=>{
+    const t = letters.length > 1 ? i / (letters.length - 1) : 0;
+    L.note = scale[Math.round(t * (scale.length - 1))];
+  });
 
   const wrap = document.getElementById('pondWrap');
   const h1 = document.querySelector('.hero-copy h1');

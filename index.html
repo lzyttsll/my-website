@@ -979,12 +979,12 @@
     updateLilypads();
     updateWaterFlowers();
     drawDecor(now, dayPhase, rainIntensity, brightness);
-    if(soundEnabled && noiseGain){
-    const targetGain = Math.min(0.12, mouseVel*0.3);
-    noiseGain.gain.setTargetAtTime(targetGain, audioCtx.currentTime, 0.08);
+  if(soundEnabled && noiseGain){
+  const targetGain = Math.min(0.9, mouseVel*2.0);
+  noiseGain.gain.setTargetAtTime(targetGain, audioCtx.currentTime, 0.08);
 }
-    if(soundEnabled && rainGain){
-    rainGain.gain.setTargetAtTime(rainIntensity*0.3, audioCtx.currentTime, 0.5);
+  if(soundEnabled && rainGain){
+  rainGain.gain.setTargetAtTime(rainIntensity*0.9, audioCtx.currentTime, 0.5);
 }
     window.__pondState = { mouseScreen: {x:mouseScreen.x, y:mouseScreen.y}, rainSplashes: rainSplashes };
     requestAnimationFrame(loop);
@@ -1002,9 +1002,12 @@ function initWaterSound(){
   audioEl.loop = true;
   audioEl.crossOrigin = 'anonymous';
   const track = audioCtx.createMediaElementSource(audioEl);
+  const waterBoost = audioCtx.createGain();
+  waterBoost.gain.value = 3; // amplifies beyond the recording's original level
   noiseGain = audioCtx.createGain();
   noiseGain.gain.value = 0;
-  track.connect(noiseGain);
+  track.connect(waterBoost);
+  waterBoost.connect(noiseGain);
   noiseGain.connect(audioCtx.destination);
   audioEl.play();
 
@@ -1012,9 +1015,12 @@ function initWaterSound(){
   rainEl.loop = true;
   rainEl.crossOrigin = 'anonymous';
   const rainTrack = audioCtx.createMediaElementSource(rainEl);
+  const rainBoost = audioCtx.createGain();
+  rainBoost.gain.value = 3;
   rainGain = audioCtx.createGain();
   rainGain.gain.value = 0;
-  rainTrack.connect(rainGain);
+  rainTrack.connect(rainBoost);
+  rainBoost.connect(rainGain);
   rainGain.connect(audioCtx.destination);
   rainEl.play();
 }

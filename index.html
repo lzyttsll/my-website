@@ -986,12 +986,50 @@
     window.__pondState = { mouseScreen: {x:mouseScreen.x, y:mouseScreen.y}, rainSplashes: rainSplashes };
     requestAnimationFrame(loop);
   }
+    // ---------- water sound, unlocked by a click (browsers require this) ----------
+  let audioCtx = null;
+  let noiseGain = null;
+  let soundEnabled = false;
+
+  function initWaterSound(){
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const bufferSize = 2 * audioCtx.sampleRate;
+    const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++) output[i] = Math.random()*2-1;
+
+    const noiseSource = audioCtx.createBufferSource();
+    noiseSource.buffer = noiseBuffer;
+    noiseSource.loop = true;
+
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 700;
+
+    noiseGain = audioCtx.createGain();
+    noiseGain.gain.value = 0;
+
+    noiseSource.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(audioCtx.destination);
+    noiseSource.start();
+  }
+
+  const soundToggle = document.getElementById('soundToggle');
+  soundToggle.addEventListener('click', ()=>{
+    if(!audioCtx) initWaterSound();
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    soundEnabled = !soundEnabled;
+    soundToggle.textContent = soundEnabled ? '🔊' : '🔇';
+    if(!soundEnabled) noiseGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.2);
+  });
 
   window.addEventListener('resize', resize);
   resize();
   requestAnimationFrame(loop);
 })();
 </script>
+  
 <script>
 (function(){
   const overlay = document.getElementById('pageTransition');
@@ -1668,43 +1706,6 @@ function loop(){
     });
   }
   requestAnimationFrame(loop);
-  // ---------- water sound, unlocked by a click (browsers require this) ----------
-let audioCtx = null;
-let noiseGain = null;
-let soundEnabled = false;
-
-function initWaterSound(){
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  const bufferSize = 2 * audioCtx.sampleRate;
-  const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-  const output = noiseBuffer.getChannelData(0);
-  for(let i=0;i<bufferSize;i++) output[i] = Math.random()*2-1;
-
-  const noiseSource = audioCtx.createBufferSource();
-  noiseSource.buffer = noiseBuffer;
-  noiseSource.loop = true;
-
-  const filter = audioCtx.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.value = 700;
-
-  noiseGain = audioCtx.createGain();
-  noiseGain.gain.value = 0;
-
-  noiseSource.connect(filter);
-  filter.connect(noiseGain);
-  noiseGain.connect(audioCtx.destination);
-  noiseSource.start();
-}
-
-const soundToggle = document.getElementById('soundToggle');
-soundToggle.addEventListener('click', ()=>{
-  if(!audioCtx) initWaterSound();
-  if(audioCtx.state === 'suspended') audioCtx.resume();
-  soundEnabled = !soundEnabled;
-  soundToggle.textContent = soundEnabled ? '🔊' : '🔇';
-  if(!soundEnabled) noiseGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.2);
-});
 })();
 </script>
 </body>

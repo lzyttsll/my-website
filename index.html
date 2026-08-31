@@ -1899,6 +1899,16 @@ function loop(){
         }
       });
 
+            // Cap how far any push (ripple, cursor, or a neighboring letter's
+      // own emergence) can nudge a letter — keeps it a gentle bobble
+      // instead of a noticeable drift
+      const maxDrift = 14;
+      const driftDist = Math.hypot(targetX, targetY);
+      if(driftDist > maxDrift){
+        targetX = (targetX/driftDist)*maxDrift;
+        targetY = (targetY/driftDist)*maxDrift;
+      }
+
       const easing = anyForce ? 0.18 : 0.035;
       L.curX += (targetX - L.curX) * easing;
       L.curY += (targetY - L.curY) * easing;

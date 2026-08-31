@@ -500,6 +500,14 @@
   rainSplashes.push({x: cs.x, y: cs.y, age:0});
   window.__rippleEvents.push({x: cs.x, y: cs.y, start: performance.now()});
 });
+    // Lets other scripts (like the letters) trigger a real ripple at a
+  // specific spot on the water, same as a raindrop or click would
+  window.__triggerRipple = function(screenX, screenY, strength){
+    const uv = { x: screenX/dispW, y: 1 - screenY/dispH };
+    rainQueue.push({ uv, strength: strength || 0.9 });
+    rainSplashes.push({x: screenX, y: screenY, age:0});
+    window.__rippleEvents.push({x: screenX, y: screenY, start: performance.now()});
+  };
 
   let dispW, dispH;
   function resize(){
@@ -1812,10 +1820,13 @@ function loop(){
     const events = window.__rippleEvents || [];
 
     letters.forEach(L=>{
-      if(!L.revealed && (now - pageLoadTime) >= L.revealDelay){
+        if(!L.revealed && (now - pageLoadTime) >= L.revealDelay){
         L.revealed = true;
-        L.outer.style.clipPath = 'inset(0 0 0% 0)';
+        L.outer.style.opacity = '1';
         L.curY = submergeOffset;
+        if(window.__triggerRipple){
+          window.__triggerRipple(L.baseX, L.baseY, 0.5 + Math.random()*0.3);
+        }
       }
 
       const cx = L.baseX + L.curX;

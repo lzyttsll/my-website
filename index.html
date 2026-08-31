@@ -1819,7 +1819,7 @@ function animate(t){
   const submergeOffset = 70; // how many pixels "underwater" each letter starts
 
   const touchRadius = 70;
-  const touchPush = 40;
+  const touchPush = 18;
 
   // Real ripples expand much further and last much longer than the
   // quick decorative splash rings — these numbers approximate the
@@ -1827,7 +1827,7 @@ function animate(t){
   const rippleSpeed = 180;     // pixels per second the ring expands
   const rippleLifetime = 4.5;  // seconds before a ripple fully fades
   const rippleBand = 45;       // how wide the "active" ring edge is
-  const ripplePush = 55;
+  const ripplePush = 20;
 
   let letterBasesReady = false;
 function computeLetterBases(){
@@ -1902,7 +1902,7 @@ function loop(){
             // Cap how far any push (ripple, cursor, or a neighboring letter's
       // own emergence) can nudge a letter — keeps it a gentle bobble
       // instead of a noticeable drift
-      const maxDrift = 14;
+      const maxDrift = 6;
       const driftDist = Math.hypot(targetX, targetY);
       if(driftDist > maxDrift){
         targetX = (targetX/driftDist)*maxDrift;

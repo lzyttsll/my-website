@@ -1107,7 +1107,7 @@ const pondObserver = new IntersectionObserver((entries)=>{
   entries.forEach(entry=>{
     if(audioCtx && masterGain){
       const targetLevel = entry.isIntersecting ? (soundSlider.value/100) : 0;
-      masterGain.gain.setTargetAtTime(targetLevel, audioCtx.currentTime, 0.4);
+      masterGain.gain.setTargetAtTime(targetLevel, audioCtx.currentTime, 0.1);
     }
   });
 }, {threshold: 0});

@@ -12,8 +12,8 @@
   .pond-wrap{position:relative;width:100%;height:100vh;min-height:520px;overflow:hidden;background:#0e3b3a;cursor:crosshair;}
   .pond-wrap canvas{position:absolute;top:0;left:0;width:100%;height:100%;display:block;}
   .hero-copy{
-    position:absolute; inset:0; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-end;
-    padding:0 6vw 8vw; pointer-events:none; z-index:5;
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:0 6vw; pointer-events:none; z-index:5;
   }
   .hero-copy h1{ color:var(--hero-text); font-size:clamp(2.4rem,7vw,5rem); margin:0 0 .2em; text-shadow:0 2px 24px rgba(0,0,0,.35); }
   .hero-copy p{ color:var(--hero-text); opacity:.85; font-size:clamp(1rem,1.6vw,1.3rem); max-width:34ch; margin:0; font-weight:300; }
@@ -1726,10 +1726,12 @@ function animate(t){
     const letters = [];
     [...text].forEach(ch=>{
       const outer = document.createElement('span');
-      outer.style.display = 'inline-block';
+            outer.style.display = 'inline-block';
+      outer.style.opacity = '0';
+      outer.style.transition = 'opacity 0.5s ease';
       outer.textContent = ch === ' ' ? '\u00A0' : ch;
       el.appendChild(outer);
-            letters.push({ outer, curX: 0, curY: 0, note: 0, hasChimed: false });
+            letters.push({ outer, curX: 0, curY: 0, note: 0, hasChimed: false, revealed: false, revealDelay: 0 });
     });
     return letters;
   }
@@ -1748,6 +1750,19 @@ function animate(t){
     const t = letters.length > 1 ? i / (letters.length - 1) : 0;
     L.note = scale[Math.round(t * (scale.length - 1))];
   });
+  // Reveal each letter at a random moment (not left to right), like the
+  // name rising up out of the water piece by piece
+  const revealOrder = letters.map((_, i) => i);
+  for(let i = revealOrder.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [revealOrder[i], revealOrder[j]] = [revealOrder[j], revealOrder[i]];
+  }
+  const staggerMs = 55;
+  revealOrder.forEach((letterIndex, orderPosition)=>{
+    letters[letterIndex].revealDelay = orderPosition * staggerMs;
+  });
+  const pageLoadTime = performance.now();
+  const submergeOffset = 70; // how many pixels "underwater" each letter starts
 
   const touchRadius = 70;
   const touchPush = 40;
@@ -1785,6 +1800,12 @@ function loop(){
     const events = window.__rippleEvents || [];
 
     letters.forEach(L=>{
+    if(!L.revealed && (now - pageLoadTime) >= L.revealDelay){
+        L.revealed = true;
+        L.outer.style.opacity = '1';
+        L.curY = submergeOffset;
+      }
+
       const cx = L.baseX + L.curX;
       const cy = L.baseY + L.curY;
 

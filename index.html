@@ -993,87 +993,19 @@
 
  function initWaterSound(){
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  const bufferSize = 2 * audioCtx.sampleRate;
 
-  const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-  const output = noiseBuffer.getChannelData(0);
-  for(let i=0;i<bufferSize;i++) output[i] = Math.random()*2-1;
+  const audioEl = new Audio('water-trickle.mp3');
+  audioEl.loop = true;
+  audioEl.crossOrigin = 'anonymous';
 
-  const noiseSource = audioCtx.createBufferSource();
-  noiseSource.buffer = noiseBuffer;
-  noiseSource.loop = true;
-
-  const filter = audioCtx.createBiquadFilter();
-  filter.type = 'bandpass';
-  filter.frequency.value = 4200;
-  filter.Q.value = 2.5;
-
-  // A short echo with feedback — this is what turns plain noise into
-  // something that resonates and rings like water, instead of just
-  // sounding like flat, dry, gritty texture (sand)
-  const combDelay = audioCtx.createDelay();
-  combDelay.delayTime.value = 0.004;
-  const combFeedback = audioCtx.createGain();
-  combFeedback.gain.value = 0.55;
-  combDelay.connect(combFeedback);
-  combFeedback.connect(combDelay);
-
-  // very slowly wobbles the delay time, so the resonance shifts and
-  // shimmers rather than ringing at one fixed, robotic pitch
-  const shimmerLFO = audioCtx.createOscillator();
-  shimmerLFO.frequency.value = 0.15;
-  const shimmerDepth = audioCtx.createGain();
-  shimmerDepth.gain.value = 0.0015;
-  shimmerLFO.connect(shimmerDepth);
-  shimmerDepth.connect(combDelay.delayTime);
-
-  const dryGain = audioCtx.createGain();
-  dryGain.gain.value = 0.5;
-  const wetGain = audioCtx.createGain();
-  wetGain.gain.value = 0.8;
-
-  // amplitude flicker for the bubbling variation
-  const lfoBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-  const lfoData = lfoBuffer.getChannelData(0);
-  for(let i=0;i<bufferSize;i++) lfoData[i] = Math.random()*2-1;
-
-  const lfoSource = audioCtx.createBufferSource();
-  lfoSource.buffer = lfoBuffer;
-  lfoSource.loop = true;
-
-  const lfoFilter = audioCtx.createBiquadFilter();
-  lfoFilter.type = 'lowpass';
-  lfoFilter.frequency.value = 5;
-
-  const lfoGain = audioCtx.createGain();
-  lfoGain.gain.value = 0.6;
-  const lfoOffset = audioCtx.createConstantSource();
-  lfoOffset.offset.value = 0.6;
-
-  const amplitudeMod = audioCtx.createGain();
-  amplitudeMod.gain.value = 0;
-
-  lfoSource.connect(lfoFilter);
-  lfoFilter.connect(lfoGain);
-  lfoGain.connect(amplitudeMod.gain);
-  lfoOffset.connect(amplitudeMod.gain);
-
+  const track = audioCtx.createMediaElementSource(audioEl);
   noiseGain = audioCtx.createGain();
   noiseGain.gain.value = 0;
 
-  noiseSource.connect(filter);
-  filter.connect(dryGain);
-  filter.connect(combDelay);
-  combDelay.connect(wetGain);
-  dryGain.connect(amplitudeMod);
-  wetGain.connect(amplitudeMod);
-  amplitudeMod.connect(noiseGain);
+  track.connect(noiseGain);
   noiseGain.connect(audioCtx.destination);
 
-  noiseSource.start();
-  lfoSource.start();
-  lfoOffset.start();
-  shimmerLFO.start();
+  audioEl.play();
 }
 
   const soundToggle = document.getElementById('soundToggle');

@@ -991,11 +991,10 @@
   let noiseGain = null;
   let soundEnabled = false;
 
-  function initWaterSound(){
+ function initWaterSound(){
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   const bufferSize = 2 * audioCtx.sampleRate;
 
-  // main noise source — the raw texture of the water
   const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
   const output = noiseBuffer.getChannelData(0);
   for(let i=0;i<bufferSize;i++) output[i] = Math.random()*2-1;
@@ -1004,16 +1003,36 @@
   noiseSource.buffer = noiseBuffer;
   noiseSource.loop = true;
 
-  // brighter, narrower band — this is what makes it sound like a
-  // trickle instead of a dull crashing hiss
   const filter = audioCtx.createBiquadFilter();
   filter.type = 'bandpass';
-  filter.frequency.value = 3200;
-  filter.Q.value = 0.7;
+  filter.frequency.value = 4200;
+  filter.Q.value = 2.5;
 
-  // a second, much slower noise source drives the amplitude up and
-  // down at random — this is what creates the "bubbling" flicker of
-  // a trickle rather than one smooth continuous tone
+  // A short echo with feedback — this is what turns plain noise into
+  // something that resonates and rings like water, instead of just
+  // sounding like flat, dry, gritty texture (sand)
+  const combDelay = audioCtx.createDelay();
+  combDelay.delayTime.value = 0.004;
+  const combFeedback = audioCtx.createGain();
+  combFeedback.gain.value = 0.55;
+  combDelay.connect(combFeedback);
+  combFeedback.connect(combDelay);
+
+  // very slowly wobbles the delay time, so the resonance shifts and
+  // shimmers rather than ringing at one fixed, robotic pitch
+  const shimmerLFO = audioCtx.createOscillator();
+  shimmerLFO.frequency.value = 0.15;
+  const shimmerDepth = audioCtx.createGain();
+  shimmerDepth.gain.value = 0.0015;
+  shimmerLFO.connect(shimmerDepth);
+  shimmerDepth.connect(combDelay.delayTime);
+
+  const dryGain = audioCtx.createGain();
+  dryGain.gain.value = 0.5;
+  const wetGain = audioCtx.createGain();
+  wetGain.gain.value = 0.8;
+
+  // amplitude flicker for the bubbling variation
   const lfoBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
   const lfoData = lfoBuffer.getChannelData(0);
   for(let i=0;i<bufferSize;i++) lfoData[i] = Math.random()*2-1;
@@ -1024,7 +1043,7 @@
 
   const lfoFilter = audioCtx.createBiquadFilter();
   lfoFilter.type = 'lowpass';
-  lfoFilter.frequency.value = 7; // slow random flicker, a few times a second
+  lfoFilter.frequency.value = 5;
 
   const lfoGain = audioCtx.createGain();
   lfoGain.gain.value = 0.6;
@@ -1043,13 +1062,18 @@
   noiseGain.gain.value = 0;
 
   noiseSource.connect(filter);
-  filter.connect(amplitudeMod);
+  filter.connect(dryGain);
+  filter.connect(combDelay);
+  combDelay.connect(wetGain);
+  dryGain.connect(amplitudeMod);
+  wetGain.connect(amplitudeMod);
   amplitudeMod.connect(noiseGain);
   noiseGain.connect(audioCtx.destination);
 
   noiseSource.start();
   lfoSource.start();
   lfoOffset.start();
+  shimmerLFO.start();
 }
 
   const soundToggle = document.getElementById('soundToggle');

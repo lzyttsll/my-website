@@ -725,6 +725,16 @@
       if(f.y<-40) f.y=dispH+40; if(f.y>dispH+40) f.y=-40;
     });
   }
+    window.__scareFishAt = function(sx, sy, radius){
+    fish.forEach(f=>{
+      const dx = f.x-sx, dy = f.y-sy;
+      const dist = Math.hypot(dx,dy);
+      if(dist < radius){
+        f.angle = Math.atan2(dy,dx);
+        f.speed = f.baseSpeed*f.fleeMult;
+      }
+    });
+  };
 
   function updateLilypads(){
   const radius = 130;
@@ -1726,9 +1736,9 @@ function animate(t){
     const letters = [];
     [...text].forEach(ch=>{
       const outer = document.createElement('span');
-            outer.style.display = 'inline-block';
-      outer.style.opacity = '0';
-      outer.style.transition = 'opacity 0.5s ease';
+      outer.style.display = 'inline-block';
+      outer.style.clipPath = 'inset(0 0 100% 0)';
+      outer.style.transition = 'clip-path 1.1s cubic-bezier(0.16, 1, 0.3, 1)';
       outer.textContent = ch === ' ' ? '\u00A0' : ch;
       el.appendChild(outer);
             letters.push({ outer, curX: 0, curY: 0, note: 0, hasChimed: false, revealed: false, revealDelay: 0 });
@@ -1762,6 +1772,8 @@ function animate(t){
     letters[letterIndex].revealDelay = orderPosition * staggerMs;
   });
   const pageLoadTime = performance.now();
+  const centerX = wrap.clientWidth/2, centerY = wrap.clientHeight/2;
+  if(window.__scareFishAt) window.__scareFishAt(centerX, centerY, 220);
   const submergeOffset = 70; // how many pixels "underwater" each letter starts
 
   const touchRadius = 70;
@@ -1800,9 +1812,9 @@ function loop(){
     const events = window.__rippleEvents || [];
 
     letters.forEach(L=>{
-    if(!L.revealed && (now - pageLoadTime) >= L.revealDelay){
+      if(!L.revealed && (now - pageLoadTime) >= L.revealDelay){
         L.revealed = true;
-        L.outer.style.opacity = '1';
+        L.outer.style.clipPath = 'inset(0 0 0% 0)';
         L.curY = submergeOffset;
       }
 

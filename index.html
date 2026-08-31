@@ -21,11 +21,25 @@
     position:absolute; top:9vw; right:6vw; font-size:.78rem; letter-spacing:.14em; text-transform:uppercase;
     color:var(--hero-text); opacity:.55; z-index:5; transition:opacity 1.2s ease;
 }
-  .sound-toggle{
+  .sound-control{
   position:absolute; top:9vw; right:6vw; margin-top:2.4em;
+  display:flex; align-items:center; gap:.5em;
   background:none; border:1px solid rgba(244,239,228,0.4); border-radius:20px;
-  padding:.35em .7em; font-size:.9rem; cursor:pointer; z-index:5;
-  color:rgba(244,239,228,0.85);
+  padding:.35em .9em; z-index:5;
+}
+.sound-control .sound-icon{ font-size:.9rem; color:rgba(244,239,228,0.85); }
+.sound-control input[type="range"]{
+  width:70px; height:3px; -webkit-appearance:none; appearance:none;
+  background:rgba(244,239,228,0.4); border-radius:2px; outline:none;
+}
+.sound-control input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none;
+  width:12px; height:12px; border-radius:50%;
+  background:rgba(244,239,228,0.9); cursor:pointer;
+}
+.sound-control input[type="range"]::-moz-range-thumb{
+  width:12px; height:12px; border-radius:50%; border:none;
+  background:rgba(244,239,228,0.9); cursor:pointer;
 }
 @keyframes floatBob{
   0%, 100% { transform: translate(0,0) rotate(0deg); }
@@ -65,7 +79,10 @@
   <canvas id="gl"></canvas>
   <canvas id="overlay"></canvas>
   <div class="hint" id="hint">move the cursor</div>
-  <button class="sound-toggle" id="soundToggle" aria-label="Toggle sound">🔇</button>
+  <div class="sound-control" id="soundControl">
+  <span class="sound-icon" id="soundIcon">🔇</span>
+  <input type="range" id="soundSlider" min="0" max="100" value="0" aria-label="Sound volume" />
+</div>
   <div class="hero-copy">
     <h1>Zhuyutong Li</h1>
     <p>Building things, one block at a time :)</p>
@@ -991,10 +1008,11 @@
     requestAnimationFrame(loop);
   }
     // ---------- water sound, unlocked by a click (browsers require this) ----------
-  let audioCtx = null;
-  let noiseGain = null;
-  let rainGain = null;
-  let soundEnabled = false;
+let audioCtx = null;
+let noiseGain = null;
+let rainGain = null;
+let masterGain = null;
+let soundEnabled = false;
 
 function initWaterSound(){
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1015,7 +1033,10 @@ function initWaterSound(){
   compressor.ratio.value = 12;
   compressor.attack.value = 0.003;
   compressor.release.value = 0.25;
-  compressor.connect(audioCtx.destination);
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0;
+  compressor.connect(masterGain);
+  masterGain.connect(audioCtx.destination);
 
   noiseGain.connect(compressor);
   audioEl.play();
@@ -1034,13 +1055,15 @@ function initWaterSound(){
   rainEl.play();
 }
 
-  const soundToggle = document.getElementById('soundToggle');
-  soundToggle.addEventListener('click', ()=>{
+  const soundSlider = document.getElementById('soundSlider');
+  const soundIcon = document.getElementById('soundIcon');
+  soundSlider.addEventListener('input', ()=>{
     if(!audioCtx) initWaterSound();
     if(audioCtx.state === 'suspended') audioCtx.resume();
-    soundEnabled = !soundEnabled;
-    soundToggle.textContent = soundEnabled ? '🔊' : '🔇';
-    if(!soundEnabled) noiseGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.2);
+    const level = soundSlider.value / 100;
+    masterGain.gain.setTargetAtTime(level, audioCtx.currentTime, 0.05);
+    soundEnabled = level > 0;
+    soundIcon.textContent = level === 0 ? '🔇' : (level < 0.5 ? '🔉' : '🔊');
   });
 
   window.addEventListener('resize', resize);

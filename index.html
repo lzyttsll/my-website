@@ -1749,13 +1749,6 @@ function animate(t){
     L.note = scale[Math.round(t * (scale.length - 1))];
   });
 
-  const wrap = document.getElementById('pondWrap');
-  const h1 = document.querySelector('.hero-copy h1');
-  const p = document.querySelector('.hero-copy p');
-  if(!wrap || !h1) return;
-
-  const letters = [...splitLetters(h1), ...(p ? splitLetters(p) : [])];
-
   const touchRadius = 70;
   const touchPush = 40;
 

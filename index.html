@@ -1011,7 +1011,7 @@
   noiseGain.gain.setTargetAtTime(targetGain, audioCtx.currentTime, 0.08);
 }
   if(soundEnabled && rainGain){
-  const targetRainGain = Math.min(0.4, rainIntensity*0.6);
+  const targetRainGain = Math.min(0.2, rainIntensity*0.3);
   rainGain.gain.setTargetAtTime(targetRainGain, audioCtx.currentTime, 0.5);
 }
     window.__pondState = { mouseScreen: {x:mouseScreen.x, y:mouseScreen.y}, rainSplashes: rainSplashes };
@@ -1118,6 +1118,7 @@ window.__playNote = playNote;
     const level = soundSlider.value / 100;
     masterGain.gain.setTargetAtTime(level, audioCtx.currentTime, 0.05);
     soundEnabled = level > 0;
+    window.__soundEnabled = soundEnabled;
     soundIcon.textContent = level === 0 ? '🔇' : (level < 0.5 ? '🔉' : '🔊');
   });
   // Fades the sound out once you scroll past the pond, and back in
@@ -1786,7 +1787,7 @@ function loop(){
       const mdx = cx - state.mouseScreen.x, mdy = cy - state.mouseScreen.y;
       const mdist = Math.hypot(mdx, mdy);
       if(mdist < touchRadius && mdist > 0.01){
-      if(!L.hasChimed && soundEnabled && window.__playNote){
+      if(!L.hasChimed && window.__soundEnabled && window.__playNote){
       window.__playNote(L.note);
       L.hasChimed = true;
         }

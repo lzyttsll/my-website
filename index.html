@@ -1091,6 +1091,25 @@ function initWaterSound(){
 window.__playChime = playChime;
 }
 
+  function playNote(freq){
+  if(!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+
+  const noteGain = audioCtx.createGain();
+  noteGain.gain.setValueAtTime(0, audioCtx.currentTime);
+  noteGain.gain.linearRampToValueAtTime(0.28, audioCtx.currentTime + 0.008);
+  noteGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+
+  osc.connect(noteGain);
+  noteGain.connect(masterGain);
+
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.6);
+}
+window.__playNote = playNote;
+
   const soundSlider = document.getElementById('soundSlider');
   const soundIcon = document.getElementById('soundIcon');
   soundSlider.addEventListener('input', ()=>{
@@ -1709,7 +1728,8 @@ function animate(t){
       outer.style.display = 'inline-block';
       outer.textContent = ch === ' ' ? '\u00A0' : ch;
       el.appendChild(outer);
-      letters.push({ outer, curX: 0, curY: 0 });
+      const pentatonic = [523.25, 587.33, 659.25, 783.99, 880.00]; // C, D, E, G, A — always sounds pleasant together
+      letters.push({ outer, curX: 0, curY: 0, note: pentatonic[letters.length % pentatonic.length], hasChimed: false });
     });
     return letters;
   }
@@ -1766,10 +1786,16 @@ function loop(){
       const mdx = cx - state.mouseScreen.x, mdy = cy - state.mouseScreen.y;
       const mdist = Math.hypot(mdx, mdy);
       if(mdist < touchRadius && mdist > 0.01){
+      if(!L.hasChimed && soundEnabled && window.__playNote){
+      window.__playNote(L.note);
+      L.hasChimed = true;
+        }
         const s = (1 - mdist/touchRadius);
         targetX += (mdx/mdist) * s * touchPush;
         targetY += (mdy/mdist) * s * touchPush;
         anyForce = true;
+      } else {
+        L.hasChimed = false;
       }
 
       events.forEach(ev=>{

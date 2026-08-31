@@ -983,29 +983,40 @@
     const targetGain = Math.min(0.12, mouseVel*0.3);
     noiseGain.gain.setTargetAtTime(targetGain, audioCtx.currentTime, 0.08);
 }
+    if(soundEnabled && rainGain){
+    rainGain.gain.setTargetAtTime(rainIntensity*0.3, audioCtx.currentTime, 0.5);
+}
     window.__pondState = { mouseScreen: {x:mouseScreen.x, y:mouseScreen.y}, rainSplashes: rainSplashes };
     requestAnimationFrame(loop);
   }
     // ---------- water sound, unlocked by a click (browsers require this) ----------
   let audioCtx = null;
   let noiseGain = null;
+  let rainGain = null;
   let soundEnabled = false;
 
- function initWaterSound(){
+function initWaterSound(){
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
   const audioEl = new Audio('water-trickle.mp3');
   audioEl.loop = true;
   audioEl.crossOrigin = 'anonymous';
-
   const track = audioCtx.createMediaElementSource(audioEl);
   noiseGain = audioCtx.createGain();
   noiseGain.gain.value = 0;
-
   track.connect(noiseGain);
   noiseGain.connect(audioCtx.destination);
-
   audioEl.play();
+
+  const rainEl = new Audio('rain-sound.mp3');
+  rainEl.loop = true;
+  rainEl.crossOrigin = 'anonymous';
+  const rainTrack = audioCtx.createMediaElementSource(rainEl);
+  rainGain = audioCtx.createGain();
+  rainGain.gain.value = 0;
+  rainTrack.connect(rainGain);
+  rainGain.connect(audioCtx.destination);
+  rainEl.play();
 }
 
   const soundToggle = document.getElementById('soundToggle');

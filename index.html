@@ -502,13 +502,13 @@
 });
     // Lets other scripts (like the letters) trigger a real ripple at a
   // specific spot on the water, same as a raindrop or click would
-  window.__triggerRipple = function(screenX, screenY, strength){
+    window.__triggerRipple = function(screenX, screenY, strength){
     const uv = { x: screenX/dispW, y: 1 - screenY/dispH };
     rainQueue.push({ uv, strength: strength || 0.9 });
     rainSplashes.push({x: screenX, y: screenY, age:0});
     window.__rippleEvents.push({x: screenX, y: screenY, start: performance.now()});
+    if(window.__soundEnabled && window.__playSplash) window.__playSplash();
   };
-
   let dispW, dispH;
   function resize(){
     dispW = wrap.clientWidth; dispH = wrap.clientHeight;
@@ -1127,6 +1127,33 @@ window.__playChime = playChime;
   osc.stop(audioCtx.currentTime + 0.6);
 }
 window.__playNote = playNote;
+function playSplash(){
+  if(!audioCtx) return;
+  const bufferSize = audioCtx.sampleRate * 0.3;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for(let i=0;i<bufferSize;i++) data[i] = Math.random()*2-1;
+
+  const source = audioCtx.createBufferSource();
+  source.buffer = buffer;
+
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 1800 + Math.random()*800;
+  filter.Q.value = 1.2;
+
+  const splashGain = audioCtx.createGain();
+  splashGain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+  splashGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.28);
+
+  source.connect(filter);
+  filter.connect(splashGain);
+  splashGain.connect(masterGain);
+
+  source.start();
+  source.stop(audioCtx.currentTime + 0.3);
+}
+window.__playSplash = playSplash;
 
   const soundSlider = document.getElementById('soundSlider');
   const soundIcon = document.getElementById('soundIcon');
@@ -1822,7 +1849,7 @@ function loop(){
     letters.forEach(L=>{
         if(!L.revealed && (now - pageLoadTime) >= L.revealDelay){
         L.revealed = true;
-        L.outer.style.opacity = '1';
+        L.outer.style.clipPath = 'inset(0 0 0% 0)';
         L.curY = submergeOffset;
         if(window.__triggerRipple){
           window.__triggerRipple(L.baseX, L.baseY, 0.5 + Math.random()*0.3);

@@ -1101,7 +1101,17 @@ window.__playChime = playChime;
     soundEnabled = level > 0;
     soundIcon.textContent = level === 0 ? '🔇' : (level < 0.5 ? '🔉' : '🔊');
   });
-
+  // Fades the sound out once you scroll past the pond, and back in
+// when you scroll back to it
+const pondObserver = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(audioCtx && masterGain){
+      const targetLevel = entry.isIntersecting ? (soundSlider.value/100) : 0;
+      masterGain.gain.setTargetAtTime(targetLevel, audioCtx.currentTime, 0.4);
+    }
+  });
+}, {threshold: 0});
+pondObserver.observe(wrap);
   window.addEventListener('resize', resize);
   resize();
   requestAnimationFrame(loop);

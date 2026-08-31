@@ -21,6 +21,12 @@
     position:absolute; top:9vw; right:6vw; font-size:.78rem; letter-spacing:.14em; text-transform:uppercase;
     color:var(--hero-text); opacity:.55; z-index:5; transition:opacity 1.2s ease;
 }
+  .sound-toggle{
+  position:absolute; top:9vw; right:6vw; margin-top:2.4em;
+  background:none; border:1px solid rgba(244,239,228,0.4); border-radius:20px;
+  padding:.35em .7em; font-size:.9rem; cursor:pointer; z-index:5;
+  color:rgba(244,239,228,0.85);
+}
 @keyframes floatBob{
   0%, 100% { transform: translate(0,0) rotate(0deg); }
   25% { transform: translate(1px,-4px) rotate(-0.3deg); }
@@ -59,6 +65,7 @@
   <canvas id="gl"></canvas>
   <canvas id="overlay"></canvas>
   <div class="hint" id="hint">move the cursor</div>
+  <button class="sound-toggle" id="soundToggle" aria-label="Toggle sound">🔇</button>
   <div class="hero-copy">
     <h1>Zhuyutong Li</h1>
     <p>Building things, one block at a time :)</p>
@@ -972,6 +979,10 @@
     updateLilypads();
     updateWaterFlowers();
     drawDecor(now, dayPhase, rainIntensity, brightness);
+    if(soundEnabled && noiseGain){
+    const targetGain = Math.min(0.12, mouseVel*0.3);
+    noiseGain.gain.setTargetAtTime(targetGain, audioCtx.currentTime, 0.08);
+}
     window.__pondState = { mouseScreen: {x:mouseScreen.x, y:mouseScreen.y}, rainSplashes: rainSplashes };
     requestAnimationFrame(loop);
   }
@@ -1657,6 +1668,43 @@ function loop(){
     });
   }
   requestAnimationFrame(loop);
+  // ---------- water sound, unlocked by a click (browsers require this) ----------
+let audioCtx = null;
+let noiseGain = null;
+let soundEnabled = false;
+
+function initWaterSound(){
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const bufferSize = 2 * audioCtx.sampleRate;
+  const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const output = noiseBuffer.getChannelData(0);
+  for(let i=0;i<bufferSize;i++) output[i] = Math.random()*2-1;
+
+  const noiseSource = audioCtx.createBufferSource();
+  noiseSource.buffer = noiseBuffer;
+  noiseSource.loop = true;
+
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 700;
+
+  noiseGain = audioCtx.createGain();
+  noiseGain.gain.value = 0;
+
+  noiseSource.connect(filter);
+  filter.connect(noiseGain);
+  noiseGain.connect(audioCtx.destination);
+  noiseSource.start();
+}
+
+const soundToggle = document.getElementById('soundToggle');
+soundToggle.addEventListener('click', ()=>{
+  if(!audioCtx) initWaterSound();
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  soundEnabled = !soundEnabled;
+  soundToggle.textContent = soundEnabled ? '🔊' : '🔇';
+  if(!soundEnabled) noiseGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.2);
+});
 })();
 </script>
 </body>

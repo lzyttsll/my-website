@@ -1938,6 +1938,12 @@ function loop(){
       el.classList.toggle('flipped');
     }
   });
+  setTimeout(()=>{
+  if(el.classList.contains('flipped')) return;
+  const inner = el.querySelector('.avatar-flip-inner');
+  inner.classList.add('hint-wiggle');
+  inner.addEventListener('animationend', ()=> inner.classList.remove('hint-wiggle'), {once:true});
+}, 1800);
 })();
 </script>
 </body>

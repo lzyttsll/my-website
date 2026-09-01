@@ -174,7 +174,7 @@ footer a{ text-decoration:none; border-bottom:1px solid var(--line); }
   color:#fff; font-family:Georgia,serif; font-size:1.6rem;
 }
 .home-about .avatar-photo-sm{
-  width:96px; height:96px; border-radius:50%; flex-shrink:0;
+  width:180px; height:180px; border-radius:50%; flex-shrink:0;
   object-fit:cover;
 }
 .home-about p{ color:var(--muted); max-width:60ch; margin:0 0 .6rem; }

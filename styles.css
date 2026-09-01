@@ -181,6 +181,15 @@ footer a{ text-decoration:none; border-bottom:1px solid var(--line); }
   transition:transform 0.6s cubic-bezier(0.16,1,0.3,1);
   transform-style:preserve-3d;
 }
+@keyframes flipHintWiggle{
+  0%, 100% { transform: rotateY(0deg); }
+  30% { transform: rotateY(18deg); }
+  60% { transform: rotateY(-14deg); }
+  80% { transform: rotateY(6deg); }
+}
+.avatar-flip-inner.hint-wiggle{
+  animation: flipHintWiggle 1.4s ease-in-out;
+}
 .avatar-flip.flipped .avatar-flip-inner{ transform:rotateY(180deg); }
 .avatar-flip-face{
   position:absolute; inset:0; border-radius:50%; backface-visibility:hidden;

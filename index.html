@@ -1917,5 +1917,27 @@ function loop(){
   requestAnimationFrame(loop);
 })();
 </script>
+
+ <script>
+(function(){
+  const el = document.getElementById('avatarFlip');
+  if(!el) return;
+  let startX = 0, startY = 0, dragging = false;
+
+  el.addEventListener('pointerdown', (e)=>{
+    dragging = true;
+    startX = e.clientX; startY = e.clientY;
+  });
+  window.addEventListener('pointerup', (e)=>{
+    if(!dragging) return;
+    dragging = false;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    // require a real horizontal swipe, not just any click
+    if(Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)){
+      el.classList.toggle('flipped');
+    }
+  });
+})();
+</script>
 </body>
 </html>

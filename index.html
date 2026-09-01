@@ -1929,6 +1929,19 @@ function loop(){
   dragging = true;
   startX = e.clientX; startY = e.clientY;
 });
+  el.addEventListener('pointerdown', (e)=>{
+  e.preventDefault();
+  dragging = true;
+  startX = e.clientX; startY = e.clientY;
+});
+
+el.addEventListener('pointerenter', ()=>{
+  if(el.classList.contains('flipped')) return;
+  const inner = el.querySelector('.avatar-flip-inner');
+  inner.classList.remove('hint-wiggle');
+  requestAnimationFrame(()=> inner.classList.add('hint-wiggle'));
+  inner.addEventListener('animationend', ()=> inner.classList.remove('hint-wiggle'), {once:true});
+});
   window.addEventListener('pointerup', (e)=>{
     if(!dragging) return;
     dragging = false;

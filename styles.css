@@ -173,6 +173,10 @@ footer a{ text-decoration:none; border-bottom:1px solid var(--line); }
   display:flex; align-items:center; justify-content:center;
   color:#fff; font-family:Georgia,serif; font-size:1.6rem;
 }
+.home-about .avatar-photo-sm{
+  width:96px; height:96px; border-radius:50%; flex-shrink:0;
+  object-fit:cover;
+}
 .home-about p{ color:var(--muted); max-width:60ch; margin:0 0 .6rem; }
 .home-about a.card-link{
   font-size:.82rem; text-transform:uppercase; letter-spacing:.06em; color:var(--pine);

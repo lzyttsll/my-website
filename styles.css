@@ -187,10 +187,11 @@ footer a{ text-decoration:none; border-bottom:1px solid var(--line); }
   display:flex; align-items:center; justify-content:center;
 }
 .avatar-flip-front{ width:100%; height:100%; object-fit:cover; -webkit-user-drag:none; user-drag:none; }
-.avatar-flip-back{
+.avatar-flip-back-img{
   transform:rotateY(180deg);
-  background:linear-gradient(135deg, var(--pine), var(--accent));
-  color:#fff; font-family:Georgia,serif; font-size:3.4rem; letter-spacing:.05em;
+  width:100%; height:100%; object-fit:cover;
+  background:var(--paper);
+  -webkit-user-drag:none; user-drag:none;
 }
 .home-about p{ color:var(--muted); max-width:60ch; margin:0 0 .6rem; }
 .home-about a.card-link{

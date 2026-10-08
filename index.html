@@ -1739,6 +1739,8 @@ scrollObserver.observe(villageWrap);
 
   let lastFrameTime = 0;
   window.addEventListener('focus', ()=>{ lastFrameTime = 0; });
+  let raycastFrameCounter = 0;
+  let cachedNewHover = null;
 function animate(t){
     requestAnimationFrame(animate);
     const time = t*0.001;

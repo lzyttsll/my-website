@@ -1748,9 +1748,13 @@ function animate(t){
     mixers.forEach(m=> m.update(delta));
     if(window.__updateFigure) window.__updateFigure(delta);
 
-    raycaster.setFromCamera(mouseNDC, camera);
-    const hits = raycaster.intersectObjects(houseMeshes, true);
-    const newHover = hits.length ? findHouseRoot(hits[0].object) : null;
+    raycastFrameCounter++;
+    if(raycastFrameCounter % 2 === 0){
+      raycaster.setFromCamera(mouseNDC, camera);
+      const hits = raycaster.intersectObjects(houseMeshes, true);
+      cachedNewHover = hits.length ? findHouseRoot(hits[0].object) : null;
+    }
+    const newHover = cachedNewHover;
 
     houseMeshes.forEach(house=>{
       const isHovered = house === newHover;

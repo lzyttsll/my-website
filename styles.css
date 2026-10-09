@@ -134,6 +134,10 @@ footer a{ text-decoration:none; border-bottom:1px solid var(--line); }
 .about-grid img.avatar-photo{
   width:200px; height:200px; border-radius:50%; object-fit:cover;
 }
+.avatar-photo{
+  width:200px; height:200px; border-radius:50%;
+  object-fit:cover;
+}
 .about-bio p{ color:var(--muted); max-width:62ch; margin-bottom:1.2rem; }
 .about-bio h2{ font-size:1.05rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:2rem 0 .8rem; }
 .contact-band{

@@ -203,7 +203,8 @@ footer a{ text-decoration:none; border-bottom:1px solid var(--line); }
   background:var(--pine);
 }
 .card-banner.banner-mobile .card-banner-img{
-  object-fit:contain;
+  object-fit:cover;
+}
 }
 /* ---- Homepage about teaser ---- */
 .home-about{

@@ -1379,6 +1379,14 @@ if(themeToggleBtn){
     const label = makeLabel(b.label);
     label.position.y = b.height + 0.7;
     group.add(label);
+    // A big, invisible click/hover target — much larger than the actual
+// model, so clicking anywhere near it (including near the label)
+// reliably registers, regardless of how sparse the model's geometry is
+const hitboxGeo = new THREE.CylinderGeometry(1.5, 1.5, b.height + 1.6, 12);
+const hitboxMat = new THREE.MeshBasicMaterial({transparent:true, opacity:0, depthWrite:false});
+const hitbox = new THREE.Mesh(hitboxGeo, hitboxMat);
+hitbox.position.y = (b.height + 1.6) / 2;
+group.add(hitbox);
 
     group.userData = {
       baseY: 0,
@@ -1711,7 +1719,9 @@ scrollObserver.observe(villageWrap);
   raycaster.setFromCamera(mouseNDC, camera);
   const hits = raycaster.intersectObjects(houseMeshes, true);
   if(hits.length){
-    const href = hits[0].object.userData.rootHref;
+    const root = findHouseRoot(hits[0].object);
+    const href = root ? root.userData.href : null;
+  
     if(href){
       const overlay = document.getElementById('pageTransition');
       if(overlay){

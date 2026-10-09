@@ -112,6 +112,19 @@ main{ padding:4vw 6vw 6vw; max-width:1100px; margin:0 auto; }
   margin:0 0 .75rem 0;
 }
 
+.timeline-item.logo-center{
+  display:flex;
+  align-items:center;
+  gap:1.25rem;
+}
+.timeline-item.logo-center .entry-body{
+  flex:1;
+}
+.timeline-item.logo-center .school-logo{
+  float:none;
+  margin:0;
+  flex-shrink:0;
+}
 /* Research list */
 .pub-list{ display:flex; flex-direction:column; }
 .pub{ padding:1.4rem 0; border-bottom:1px solid var(--line); }

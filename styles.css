@@ -568,12 +568,9 @@ body{ transition: background-color .3s ease, color .3s ease; }
 .card-stack:hover #frontCard{ transform:translate(0,-20px) rotate(2deg); }
 
 .card-back-1, .card-back-2{ overflow:hidden; }
-.mini-card-img{ width:100%; height:100%; object-fit:cover; display:block; }
-.mini-card-label{
-  position:absolute; bottom:0; left:0; right:0;
-  background:rgba(0,0,0,0.55); color:#fff;
-  font-size:.7rem; padding:.35em .5em; text-align:center;
-  font-family:Georgia,serif;
+.card-back-1, .card-back-2{ overflow:hidden; }
+.card-back-1, .card-back-2{
+  overflow:hidden; display:flex; flex-direction:column;
 }
 /* ---- code snippet visual (Technical Execution) ---- */
 .code-visual{

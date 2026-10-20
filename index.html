@@ -27,7 +27,10 @@
   background:none; border:1px solid rgba(244,239,228,0.4); border-radius:20px;
   padding:.35em .9em; z-index:5;
 }
-.sound-control .sound-icon{ font-size:.9rem; color:rgba(244,239,228,0.85); }
+.sound-control .sound-icon{
+  font-size:.9rem; color:rgba(244,239,228,0.85);
+  background:none; border:none; padding:0; cursor:pointer;
+}
 .sound-control input[type="range"]{
   width:70px; height:3px; -webkit-appearance:none; appearance:none;
   background:rgba(244,239,228,0.4); border-radius:2px; outline:none;
@@ -74,7 +77,7 @@
   <canvas id="overlay"></canvas>
   <div class="hint" id="hint">move the cursor</div>
   <div class="sound-control" id="soundControl">
-  <span class="sound-icon" id="soundIcon">🔇</span>
+  <button class="sound-icon" id="soundIcon" aria-label="Toggle sound">🔇</button>
   <input type="range" id="soundSlider" min="0" max="100" value="0" aria-label="Sound volume" />
 </div>
   <div class="hero-copy">
@@ -1315,16 +1318,30 @@ function playSplash(){
 }
 window.__playSplash = playSplash;
 
-  const soundSlider = document.getElementById('soundSlider');
+    const soundSlider = document.getElementById('soundSlider');
   const soundIcon = document.getElementById('soundIcon');
-  soundSlider.addEventListener('input', ()=>{
+
+  function applyVolume(level){
     if(!audioCtx) initWaterSound();
     if(audioCtx.state === 'suspended') audioCtx.resume();
-    const level = soundSlider.value / 100;
     masterGain.gain.setTargetAtTime(level, audioCtx.currentTime, 0.05);
     soundEnabled = level > 0;
     window.__soundEnabled = soundEnabled;
     soundIcon.textContent = level === 0 ? '🔇' : (level < 0.5 ? '🔉' : '🔊');
+  }
+
+  soundSlider.addEventListener('input', ()=>{
+    applyVolume(soundSlider.value / 100);
+  });
+
+  soundIcon.addEventListener('click', ()=>{
+    if(soundEnabled){
+      soundSlider.value = 0;
+      applyVolume(0);
+    } else {
+      soundSlider.value = 50;
+      applyVolume(0.5);
+    }
   });
 const pondObserver = new IntersectionObserver((entries)=>{
   entries.forEach(entry=>{

@@ -449,6 +449,14 @@ body{ transition: background-color .3s ease, color .3s ease; }
 .paper-body{ padding:1.1rem 1.2rem 1.3rem; }
 .paper-body h3{ font-size:1.3rem; margin:0 0 .3em; }
 .paper-body p{ color:var(--muted); font-size:.88rem; margin:0; }
+.paper-thumb.paper-thumb-logo{
+  background:linear-gradient(135deg, var(--pine), var(--accent));
+  display:flex; align-items:center; justify-content:center;
+}
+.paper-thumb.paper-thumb-logo img{
+  width:45%; height:auto; object-fit:contain;
+  filter:brightness(0) invert(1);
+}
 /* ================= New homepage information sections ================= */
 :root{ --blossom: #d98fa6; }
 

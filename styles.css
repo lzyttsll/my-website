@@ -438,7 +438,9 @@ body{ transition: background-color .3s ease, color .3s ease; }
   border-right:1px solid var(--line);
   background:#fafaf8;
 }
-.paper-thumb img{ width:100%; height:100%; object-fit:cover; object-position:top; }
+.paper-card .paper-thumb img{
+  width:100%; height:100%; object-fit:cover; object-position:top; display:block;
+}
 .paper-thumb.paper-thumb-logo{
   background:linear-gradient(135deg, var(--pine), var(--accent));
   display:flex; align-items:center; justify-content:center;

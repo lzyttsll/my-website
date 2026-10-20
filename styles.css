@@ -274,7 +274,7 @@ footer a{ text-decoration:none; border-bottom:1px solid var(--line); }
 .flourish svg{ width:28px; height:28px; display:block; }
 
 .home-eyebrow{
-  font-size:.78rem; letter-spacing:.16em; text-transform:uppercase;
+  font-size:1.3rem; letter-spacing:.08em; text-transform:uppercase;
   color:var(--blossom); margin-bottom:.8rem; display:block;
 }
 

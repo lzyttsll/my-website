@@ -345,7 +345,7 @@ footer a{ text-decoration:none; border-bottom:1px solid var(--line); }
 /* ---- Page transition overlay ---- */
 .page-transition{
   position:fixed; inset:0; z-index:9999;
-  background:var(--ink); color:var(--paper);
+  background:var(--blossom); color:var(--paper);
   display:flex; align-items:center; justify-content:center;
   transition:opacity .45s ease;
 }

@@ -1104,19 +1104,14 @@
   let curFbo = fboA, curTex = stateA, nextFbo = fboB, nextTex = stateB;
   let last = performance.now();
   window.addEventListener('focus', ()=>{ last = performance.now(); });
-    let pondVisible = true;
+      let pondVisible = true;
   const pondVisibilityObserver = new IntersectionObserver((entries)=>{
     entries.forEach(entry=>{
-      const wasVisible = pondVisible;
       pondVisible = entry.isIntersecting;
-      if(pondVisible && !wasVisible){
-        last = performance.now();
-        requestAnimationFrame(loop);
-      }
+      if(pondVisible) last = performance.now();
     });
   }, {threshold:0});
   pondVisibilityObserver.observe(wrap);
-
   function stepSim(){
     mouseVel *= 0.88;
     clickStrength *= 0.8;
@@ -1185,7 +1180,9 @@
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 
-  function loop(now){
+    function loop(now){
+    requestAnimationFrame(loop);
+    if(!pondVisible) return;
     const dt = Math.min(32, now-last); last = now;
     const dayPhase = getDayPhase(now);
     const rainIntensity = updateWeather(now, dt);
@@ -1205,7 +1202,6 @@
   rainGain.gain.setTargetAtTime(targetRainGain, audioCtx.currentTime, 0.5);
 }
       window.__pondState = { mouseScreen: {x:mouseScreen.x, y:mouseScreen.y}, rainSplashes: rainSplashes };
-  if(pondVisible) requestAnimationFrame(loop);
   }
   }
 let audioCtx = null;

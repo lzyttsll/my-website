@@ -540,7 +540,17 @@ body{ transition: background-color .3s ease, color .3s ease; }
 .tc-badge{ align-self:flex-start; background:rgba(255,255,255,0.9); color:var(--ink); font-size:.56rem; font-weight:700; letter-spacing:.03em; text-transform:uppercase; padding:.15em .55em; border-radius:20px; white-space:nowrap; }
 .tc-name{ font-family:Georgia,serif; font-weight:700; color:#fff; font-size:.95rem; line-height:1.2; }
 .tc-stat{ color:rgba(255,255,255,0.9); font-size:.68rem; font-weight:600; letter-spacing:.02em; white-space:nowrap; flex-shrink:0; margin-top:.3rem; }
-.tc-art{ height:47%; display:flex; align-items:center; justify-content:center; font-size:2.6rem; background:rgba(255,255,255,0.15); margin:0 .7rem; border:2px solid rgba(255,255,255,0.5); border-radius:4px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); position:relative; z-index:2; }
+.tc-art{
+  height:47%; display:flex; align-items:center; justify-content:center;
+  background:rgba(255,255,255,0.15); margin:0 .7rem;
+  border:2px solid rgba(255,255,255,0.5); border-radius:4px;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
+  position:relative; z-index:2;
+  overflow:hidden;
+}
+.tc-art img{
+  width:100%; height:100%; object-fit:cover;
+}
 .tc-infobar{ margin:.4rem .8rem 0; padding:.2rem 0; border-top:1px solid rgba(255,255,255,0.3); border-bottom:1px solid rgba(255,255,255,0.3); font-size:.6rem; color:rgba(255,255,255,0.85); text-align:center; letter-spacing:.02em; }
 .tc-body{ flex:1; background:rgba(255,255,255,0.95); color:var(--ink); margin-top:.6rem; padding:.7rem .8rem; display:flex; flex-direction:column; gap:.55rem; border-radius:8px 8px 0 0; }
 .tc-ability{ display:flex; gap:.5rem; align-items:flex-start; }

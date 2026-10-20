@@ -80,6 +80,9 @@
   window.addEventListener('DOMContentLoaded', ()=>{
     setTimeout(()=> overlay.classList.add('hidden'), 150);
   });
+  window.addEventListener('pageshow', (event)=>{
+    if(event.persisted) overlay.classList.add('hidden');
+  });
   document.querySelectorAll('a[href]').forEach(link=>{
     const href = link.getAttribute('href');
     if(!href || href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('#')) return;

@@ -527,7 +527,7 @@ body{ transition: background-color .3s ease, color .3s ease; }
 .project-panel-content{ padding:0 0 1.2rem 2.6rem; color:var(--muted); font-size:.92rem; }
 .project-panel-content a{ color:var(--pine); font-size:.82rem; text-transform:uppercase; letter-spacing:.06em; display:inline-block; margin-top:.5rem; }
 
-.card-stack{ position:relative; width:260px; aspect-ratio:63/88; margin:0 auto; }
+.card-stack{ position:relative; width:320px; aspect-ratio:63/88; margin:0 auto; }
 .stack-card{ position:absolute; inset:0; border-radius:10px; box-shadow: 0 6px 16px rgba(11,43,43,0.18); transition: transform .4s cubic-bezier(0.16,1,0.3,1), opacity .4s ease, box-shadow .4s ease; }
 #frontCard, #backCard1, #backCard2{
   border:7px solid var(--paper);

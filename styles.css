@@ -435,10 +435,9 @@ body{ transition: background-color .3s ease, color .3s ease; }
   box-shadow: 0 10px 24px rgba(11,43,43,0.14);
 }
 .paper-thumb{
-  width:150px; flex-shrink:0; overflow:hidden; position:relative;
+  width:100px; flex-shrink:0; overflow:hidden; position:relative;
   border-right:1px solid var(--line);
   background:#fafaf8;
-  display:flex !important;
 }
 .paper-card .paper-thumb img{
   width:100% !important; height:100% !important; object-fit:cover !important; object-position:top !important; display:block !important;

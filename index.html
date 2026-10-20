@@ -2179,29 +2179,53 @@ window.addEventListener('scroll', ()=>{
   const tcNumber = document.getElementById('tcNumber');
   const tcBadge = document.getElementById('tcBadge');
   const tcInfobar = document.getElementById('tcInfobar');
+const backCard1 = document.getElementById('backCard1');
+const backCard1Img = document.getElementById('backCard1Img');
+const backCard1Label = document.getElementById('backCard1Label');
+const backCard2 = document.getElementById('backCard2');
+const backCard2Img = document.getElementById('backCard2Img');
+const backCard2Label = document.getElementById('backCard2Label');
 
-  items.forEach((li, index)=>{
-    li.querySelector('.project-row').addEventListener('click', ()=>{
-      const alreadyActive = li.classList.contains('active');
-      items.forEach(i=> i.classList.remove('active'));
-      if(!alreadyActive){
-        li.classList.add('active');
-        const d = li.dataset;
-        frontCard.style.background = d.color;
-        tcName.textContent = d.title;
-        tcStat.textContent = d.year;
-        tcArtImg.src = d.img;
-        tcAbility1.querySelector('strong').textContent = d.a1Name;
-        tcAbility1.querySelector('span').textContent = d.a1Desc;
-        tcAbility2.querySelector('strong').textContent = d.a2Name;
-        tcAbility2.querySelector('span').textContent = d.a2Desc;
-        tcFlavor.textContent = d.flavor;
-        tcNumber.textContent = String(index+1).padStart(2,'0') + '/' + items.length;
-        tcBadge.textContent = d.badge;
-        tcInfobar.textContent = 'NO. ' + String(index+1).padStart(2,'0') + ' \u00B7 ' + d.info;
-      }
-    });
+function renderStack(activeIndex){
+  const activeLi = items[activeIndex];
+  const others = [];
+  items.forEach((li, i)=>{ if(i !== activeIndex) others.push(i); });
+
+  items.forEach(i=> i.classList.remove('active'));
+  activeLi.classList.add('active');
+
+  const d = activeLi.dataset;
+  frontCard.style.background = d.color;
+  tcName.textContent = d.title;
+  tcStat.textContent = d.year;
+  tcArtImg.src = d.img;
+  tcAbility1.querySelector('strong').textContent = d.a1Name;
+  tcAbility1.querySelector('span').textContent = d.a1Desc;
+  tcAbility2.querySelector('strong').textContent = d.a2Name;
+  tcAbility2.querySelector('span').textContent = d.a2Desc;
+  tcFlavor.textContent = d.flavor;
+  tcNumber.textContent = String(activeIndex+1).padStart(2,'0') + '/' + items.length;
+  tcBadge.textContent = d.badge;
+  tcInfobar.textContent = 'NO. ' + String(activeIndex+1).padStart(2,'0') + ' \u00B7 ' + d.info;
+
+  const d1 = items[others[0]].dataset;
+  backCard1.style.background = d1.color;
+  backCard1Img.src = d1.img;
+  backCard1Label.textContent = d1.title;
+
+  const d2 = items[others[1]].dataset;
+  backCard2.style.background = d2.color;
+  backCard2Img.src = d2.img;
+  backCard2Label.textContent = d2.title;
+}
+
+items.forEach((li, index)=>{
+  li.querySelector('.project-row').addEventListener('click', ()=>{
+    renderStack(index);
   });
+});
+
+renderStack(0);
 })();
 </script>
 </body>

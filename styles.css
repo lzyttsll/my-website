@@ -267,6 +267,27 @@ footer a{ text-decoration:none; border-bottom:1px solid var(--line); }
 @media (max-width:640px){
   .home-about{ flex-direction:column; align-items:flex-start; text-align:left; }
 }
+/* ---- Homepage intro flourish (scoped pink, separate from main accent) ---- */
+:root{ --blossom: #d98fa6; }
+
+.flourish{ margin-bottom:.6rem; display:inline-block; }
+.flourish svg{ width:28px; height:28px; display:block; }
+
+.home-eyebrow{
+  font-size:.78rem; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--blossom); margin-bottom:.8rem; display:block;
+}
+
+.home-about-text p{
+  color:var(--ink); font-size:1.25rem; line-height:1.5; margin:0 0 1.2rem;
+  font-family:Georgia,'Iowan Old Style',serif;
+}
+
+.highlight{
+  background:rgba(217,143,166,0.25);
+  padding:.05em .2em;
+  border-radius:2px;
+}
 /* ---- Skills groups ---- */
 .skills-group{ margin-bottom:1.6rem; }
 .skills-group h3{

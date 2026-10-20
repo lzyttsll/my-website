@@ -156,12 +156,33 @@
       <div class="offer-text"><h3>Product Strategy</h3><p>User research, wireframing, market analysis, and prioritization frameworks — from hackathon PM work to structured PM coursework.</p></div>
     </div>
     <div class="offer-card">
-      <div class="offer-visual">mockup</div>
-      <div class="offer-text"><h3>Technical Execution</h3><p>Python, SQL, full-stack build experience — including the WebGL shaders and interactive systems powering this very site.</p></div>
+      <div class="offer-visual">
+        <div class="code-visual">
+<span class="com">// from the pond's actual ripple shader</span>
+<span class="kw">float</span> <span class="fn">hN</span> = texture2D(uState, vUv + <span class="fn">vec2</span>(<span class="num">0.0</span>, uTexel.y)).r;
+<span class="kw">float</span> <span class="fn">hS</span> = texture2D(uState, vUv - <span class="fn">vec2</span>(<span class="num">0.0</span>, uTexel.y)).r;
+<span class="kw">float</span> avg = (hN+hS+hE+hW)*<span class="num">0.25</span>;
+vel += (avg - height) * <span class="num">1.5</span> * speedVar;
+height += vel;
+
+<span class="kw">float</span> dMouse = <span class="fn">distance</span>(vUv, uMouse);
+height += uMouseVel * <span class="fn">exp</span>(-dMouse*dMouse*<span class="num">2600.0</span>);
+        </div>
+      </div>
+      <div class="offer-text"><h3>Technical Execution</h3><p>Python, SQL, and full-stack build experience — including the custom WebGL shaders, Three.js scenes, and Web Audio systems powering this very site.</p></div>
     </div>
     <div class="offer-card">
-      <div class="offer-visual">mockup</div>
-      <div class="offer-text"><h3>AI Research & Enablement</h3><p>Studied real-world AI adoption — from a city government's Copilot rollout to helping a small business rebuild with AI tools.</p></div>
+      <div class="offer-visual">
+        <div class="data-visual">
+          <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
+            <polyline points="0,80 30,65 60,70 90,40 120,45 150,20 180,25 200,10"
+              fill="none" stroke="var(--blossom)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="200" cy="10" r="4" fill="var(--accent)"/>
+            <text x="5" y="95" fill="rgba(244,239,228,0.6)" font-size="8" font-family="Helvetica">AI adoption over time</text>
+          </svg>
+        </div>
+      </div>
+      <div class="offer-text"><h3>AI Research &amp; Enablement</h3><p>Studied real-world AI adoption at every scale — from a city government's Microsoft Copilot rollout to helping a small business rebuild with AI tools.</p></div>
     </div>
   </div>
 </main>

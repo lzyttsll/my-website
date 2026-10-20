@@ -1890,12 +1890,23 @@ window.addEventListener('scroll', ()=>{
     return o;
   }
 
-  let lastFrameTime = 0;
+    let lastFrameTime = 0;
   window.addEventListener('focus', ()=>{ lastFrameTime = 0; });
   let raycastFrameCounter = 0;
   let cachedNewHover = null;
+
+  let villageVisible = true;
+  const villageVisibilityObserver = new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      villageVisible = entry.isIntersecting;
+      if(villageVisible) lastFrameTime = 0;
+    });
+  }, {threshold:0});
+  villageVisibilityObserver.observe(villageWrap);
+
   function animate(t){
     requestAnimationFrame(animate);
+    if(!villageVisible) return;
     const time = t*0.001;
     const delta = lastFrameTime ? (t - lastFrameTime)/1000 : 0;
     lastFrameTime = t;

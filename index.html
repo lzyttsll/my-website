@@ -2165,5 +2165,44 @@ el.addEventListener('pointerenter', ()=>{
 }, 1800);
 })();
 </script>
+  <script>
+(function(){
+  const items = document.querySelectorAll('#projectList li');
+  if(!items.length) return;
+  const frontCard = document.getElementById('frontCard');
+  const tcName = document.getElementById('tcName');
+  const tcStat = document.getElementById('tcStat');
+  const tcArt = document.getElementById('tcArt');
+  const tcAbility1 = document.getElementById('tcAbility1');
+  const tcAbility2 = document.getElementById('tcAbility2');
+  const tcFlavor = document.getElementById('tcFlavor');
+  const tcNumber = document.getElementById('tcNumber');
+  const tcBadge = document.getElementById('tcBadge');
+  const tcInfobar = document.getElementById('tcInfobar');
+
+  items.forEach((li, index)=>{
+    li.querySelector('.project-row').addEventListener('click', ()=>{
+      const alreadyActive = li.classList.contains('active');
+      items.forEach(i=> i.classList.remove('active'));
+      if(!alreadyActive){
+        li.classList.add('active');
+        const d = li.dataset;
+        frontCard.style.background = d.color;
+        tcName.textContent = d.title;
+        tcStat.textContent = d.year;
+        tcArt.textContent = d.icon;
+        tcAbility1.querySelector('strong').textContent = d.a1Name;
+        tcAbility1.querySelector('span').textContent = d.a1Desc;
+        tcAbility2.querySelector('strong').textContent = d.a2Name;
+        tcAbility2.querySelector('span').textContent = d.a2Desc;
+        tcFlavor.textContent = d.flavor;
+        tcNumber.textContent = String(index+1).padStart(2,'0') + '/' + items.length;
+        tcBadge.textContent = d.badge;
+        tcInfobar.textContent = 'NO. ' + String(index+1).padStart(2,'0') + ' \u00B7 ' + d.info;
+      }
+    });
+  });
+})();
+</script>
 </body>
 </html>

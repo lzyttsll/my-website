@@ -2246,15 +2246,24 @@ function renderStack(activeIndex){
   tcBadge.textContent = d.badge;
   tcInfobar.textContent = 'NO. ' + String(activeIndex+1).padStart(2,'0') + ' \u00B7 ' + d.info;
 
-  const d1 = items[others[0]].dataset;
-  backCard1.style.background = d1.color;
-  backCard1Img.src = d1.img;
-  backCard1Label.textContent = d1.title;
+  function fillBack(prefix, card, itemIndex){
+    const dd = items[itemIndex].dataset;
+    card.style.background = dd.color;
+    document.getElementById(prefix+'Name').textContent = dd.title;
+    document.getElementById(prefix+'Stat').textContent = dd.year;
+    document.getElementById(prefix+'ArtImg').src = dd.img;
+    document.getElementById(prefix+'Ability1').querySelector('strong').textContent = dd.a1Name;
+    document.getElementById(prefix+'Ability1').querySelector('span').textContent = dd.a1Desc;
+    document.getElementById(prefix+'Ability2').querySelector('strong').textContent = dd.a2Name;
+    document.getElementById(prefix+'Ability2').querySelector('span').textContent = dd.a2Desc;
+    document.getElementById(prefix+'Flavor').textContent = dd.flavor;
+    document.getElementById(prefix+'Number').textContent = String(itemIndex+1).padStart(2,'0') + '/' + items.length;
+    document.getElementById(prefix+'Badge').textContent = dd.badge;
+    document.getElementById(prefix+'Infobar').textContent = 'NO. ' + String(itemIndex+1).padStart(2,'0') + ' \u00B7 ' + dd.info;
+  }
 
-  const d2 = items[others[1]].dataset;
-  backCard2.style.background = d2.color;
-  backCard2Img.src = d2.img;
-  backCard2Label.textContent = d2.title;
+  fillBack('tc1', backCard1, others[0]);
+  fillBack('tc2', backCard2, others[1]);
 }
 
 items.forEach((li, index)=>{

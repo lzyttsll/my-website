@@ -145,6 +145,10 @@ main{ padding:4vw 6vw 6vw; max-width:1100px; margin:0 auto; }
   margin:0;
   flex-shrink:0;
 }
+.pub a{
+  color:var(--pine); font-size:.82rem; text-transform:uppercase; letter-spacing:.06em;
+  text-decoration:none; display:inline-block; margin-top:.5rem;
+}
 
 /* ---- Footer ---- */
 footer{
